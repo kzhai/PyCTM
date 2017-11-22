@@ -19,7 +19,7 @@ Assume the PyCTM package is downloaded under directory ```$PROJECT_SPACE/src/```
 
 To prepare the example dataset,
 
-	tar zxvf nips-abstract.tar.gz
+	tar zxvf pnas-abstract.tar.gz
 
 To launch PyCTM, first redirect to the directory of PyCTM source code,
 
@@ -27,7 +27,7 @@ To launch PyCTM, first redirect to the directory of PyCTM source code,
 
 and run the following command on example dataset,
 
-	python -m launch_train --input_directory=./nips-abstract --output_directory=./ --number_of_topics=10 --training_iterations=50
+	python -m launch_train --input_directory=./pnas-abstract --output_directory=./ --number_of_topics=10 --training_iterations=50
 
 The generic argument to run PyCTM is
 
