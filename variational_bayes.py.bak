@@ -6,7 +6,7 @@ VariationalBayes for Correlated Topic Models
 import multiprocessing
 import nltk;
 import numpy
-import queue;
+import Queue;
 import scipy;
 import scipy.misc;
 import scipy.optimize;
@@ -16,8 +16,8 @@ import string;
 import sys;
 import time
 
-from .inferencer import compute_dirichlet_expectation
-from .inferencer import Inferencer;
+from inferencer import compute_dirichlet_expectation
+from inferencer import Inferencer;
 
 # numpy.random.seed(1000);
 
@@ -107,7 +107,7 @@ class Process_E_Step_Queue(multiprocessing.Process):
             try:
                 (doc_id, term_ids, term_counts) = self._task_queue.get_nowait();
                 
-            except queue.Empty:
+            except Queue.Empty:
                 continue;
             
             doc_lambda = numpy.zeros(self._number_of_topics);
@@ -143,7 +143,7 @@ class Process_E_Step_Queue(multiprocessing.Process):
             doc_zeta_factor = numpy.tile(doc_zeta_factor, (self._number_of_topics, 1))
             assert doc_zeta_factor.shape == (self._number_of_topics, self._number_of_topics)
             
-            for local_parameter_iteration_index in range(self._parameter_iteration):
+            for local_parameter_iteration_index in xrange(self._parameter_iteration):
                 # update phi in close form
                 assert self._E_log_eta.shape == (self._number_of_topics, self._number_of_types);
                 log_phi = self._E_log_eta[:, term_ids] + doc_lambda[:, numpy.newaxis]
@@ -329,15 +329,15 @@ class VariationalBayes(Inferencer):
                 sys.stderr.write("warning: document collapsed during parsing");
                 continue;
             
-            word_ids.append(numpy.array(list(document_word_dict.keys())));
-            word_cts.append(numpy.array(list(document_word_dict.values()))[numpy.newaxis, :]);
+            word_ids.append(numpy.array(document_word_dict.keys()));
+            word_cts.append(numpy.array(document_word_dict.values())[numpy.newaxis, :]);
             
             doc_count += 1
             if doc_count % 10000 == 0:
-                print("successfully parse %d documents..." % doc_count);
+                print "successfully parse %d documents..." % doc_count;
         
         assert len(word_ids) == len(word_cts);
-        print("successfully parse %d documents..." % (doc_count));
+        print "successfully parse %d documents..." % (doc_count);
         
         return (word_ids, word_cts)
     
@@ -369,7 +369,7 @@ class VariationalBayes(Inferencer):
             # E_log_prob_eta = E_log_eta-scipy.misc.logsumexp(E_log_eta, axis=1)[:, numpy.newaxis]
         
         task_queue = multiprocessing.JoinableQueue()
-        for (doc_id, word_id, word_ct) in zip(list(range(number_of_documents)), word_ids, word_cts):
+        for (doc_id, word_id, word_ct) in zip(range(number_of_documents), word_ids, word_cts):
             task_queue.put((doc_id, word_id, word_ct));
         
         result_doc_parameter_queue = multiprocessing.Queue();
@@ -387,7 +387,7 @@ class VariationalBayes(Inferencer):
         # start consumers
         if number_of_processes <= 1:
             number_of_processes = multiprocessing.cpu_count();
-        print('creating %d processes' % number_of_processes)
+        print 'creating %d processes' % number_of_processes
         processes_e_step = [Process_E_Step_Queue(task_queue,
                                                  
                                                  e_step_parameters,
@@ -403,7 +403,7 @@ class VariationalBayes(Inferencer):
                                                  diagonal_covariance_matrix=self._diagonal_covariance_matrix,
                                                  parameter_iteration=local_parameter_iteration,
                                                  )
-                                                 for process_index in range(number_of_processes)];
+                                                 for process_index in xrange(number_of_processes)];
         
         for process_e_step in processes_e_step:
             process_e_step.start();
@@ -418,7 +418,7 @@ class VariationalBayes(Inferencer):
         
         # for result_queue_element_index in xrange(result_doc_parameter_queue.qsize()):
         # while not result_doc_parameter_queue.empty():
-        for result_queue_element_index in range(number_of_documents):
+        for result_queue_element_index in xrange(number_of_documents):
             (doc_id, doc_lambda, doc_nu_square) = result_doc_parameter_queue.get();
             
             assert doc_id >= 0 and doc_id < number_of_documents;
@@ -428,7 +428,7 @@ class VariationalBayes(Inferencer):
         log_likelihood = 0;
         # for result_queue_element_index in result_log_likelihood_queue.qsize():
         # while not result_log_likelihood_queue.empty():
-        for result_queue_element_index in range(number_of_processes):
+        for result_queue_element_index in xrange(number_of_processes):
             log_likelihood += result_log_likelihood_queue.get();
             # print "log_likelihood is", log_likelihood;
         
@@ -441,7 +441,7 @@ class VariationalBayes(Inferencer):
             
             # for result_queue_element_index in xrange(result_sufficient_statistics_queue.qsize()):
             # while not result_sufficient_statistics_queue.empty():
-            for result_queue_element_index in range(number_of_processes):
+            for result_queue_element_index in xrange(number_of_processes):
                 phi_sufficient_statistics += result_sufficient_statistics_queue.get();
                 # print "phi_sufficient_statistics", phi_sufficient_statistics
         
@@ -577,7 +577,7 @@ class VariationalBayes(Inferencer):
             doc_zeta_factor = numpy.tile(doc_zeta_factor, (self._number_of_topics, 1))
             assert doc_zeta_factor.shape == (self._number_of_topics, self._number_of_topics)
             
-            for local_parameter_iteration_index in range(local_parameter_iteration):
+            for local_parameter_iteration_index in xrange(local_parameter_iteration):
                 # update phi in close form
                 assert E_log_eta.shape == (self._number_of_topics, self._number_of_types);
                 log_phi = E_log_eta[:, term_ids] + doc_lambda[:, numpy.newaxis]
@@ -694,7 +694,7 @@ class VariationalBayes(Inferencer):
             phi_sufficient_statistics[:, term_ids] += numpy.exp(log_phi + numpy.log(term_counts));
             
             if (doc_id + 1) % 1000 == 0:
-                print("successfully processed %d documents..." % (doc_id + 1));
+                print "successfully processed %d documents..." % (doc_id + 1);
             
         assert numpy.all(nu_square_values > 0);
         
@@ -1077,16 +1077,16 @@ class VariationalBayes(Inferencer):
         topic_log_likelihood = self.m_step(phi_sufficient_statistics);
         clock_m_step = time.time() - clock_m_step;
         
-        print(document_log_likelihood, topic_log_likelihood);
+        print document_log_likelihood, topic_log_likelihood;
         joint_log_likelihood = document_log_likelihood + topic_log_likelihood;
         
-        print("e_step and m_step of iteration %d finished in %g and %g seconds respectively with log likelihood %g" % (self._counter, clock_e_step, clock_m_step, joint_log_likelihood))
+        print "e_step and m_step of iteration %d finished in %g and %g seconds respectively with log likelihood %g" % (self._counter, clock_e_step, clock_m_step, joint_log_likelihood)
         
         clock_hyper_opt = time.time();
         if self._hyper_parameter_optimize_interval > 0 and self._counter % self._hyper_parameter_optimize_interval == 0:
             self.optimize_hyperparameter();
         clock_hyper_opt = time.time() - clock_hyper_opt;
-        print("hyper-parameter optimization of iteration %d finished in %g seconds" % (self._counter, clock_hyper_opt));
+        print "hyper-parameter optimization of iteration %d finished in %g seconds" % (self._counter, clock_hyper_opt);
         
 
         # if abs((joint_log_likelihood - old_likelihood) / old_likelihood) < self._model_converge_threshold:
@@ -1109,12 +1109,12 @@ class VariationalBayes(Inferencer):
     def optimize_hyperparameter(self):
         assert self._lambda.shape == (self._number_of_documents, self._number_of_topics);
         self._alpha_mu = numpy.mean(self._lambda, axis=0);
-        print("update hyper-parameter mu to %s" % self._alpha_mu);
+        print "update hyper-parameter mu to %s" % self._alpha_mu;
         
         assert self._nu_square.shape == (self._number_of_documents, self._number_of_topics);
         if self._diagonal_covariance_matrix:
             self._alpha_sigma = numpy.mean(self._nu_square + (self._lambda - self._alpha_mu[numpy.newaxis, :]) ** 2, axis=0);
-            print("update hyper-parameter sigma to %s" % self._alpha_sigma);
+            print "update hyper-parameter sigma to %s" % self._alpha_sigma;
         else:
             self._alpha_mu = self._alpha_mu[numpy.newaxis, :];
             
@@ -1126,8 +1126,8 @@ class VariationalBayes(Inferencer):
             
             # self._alpha_sigma_inv = scipy.linalg.pinv(self._alpha_sigma);
             self._alpha_sigma_inv = scipy.linalg.inv(self._alpha_sigma);
-            print("update hyper-parameter sigma to")
-            print("%s" % self._alpha_sigma);
+            print "update hyper-parameter sigma to"
+            print "%s" % self._alpha_sigma;
         
         return
 
@@ -1138,12 +1138,12 @@ class VariationalBayes(Inferencer):
     def optimize_hyperparameter_old(self):
         assert self._lambda.shape == (self._number_of_documents, self._number_of_topics);
         self._alpha_mu = numpy.mean(self._lambda, axis=0);
-        print("update hyper-parameter mu to %s" % self._alpha_mu);
+        print "update hyper-parameter mu to %s" % self._alpha_mu;
         
         assert self._nu_square.shape == (self._number_of_documents, self._number_of_topics);
         if self._diagonal_covariance_matrix:
             self._alpha_sigma = numpy.mean(self._nu_square + (self._lambda - self._alpha_mu[numpy.newaxis, :]) ** 2, axis=0);
-            print("update hyper-parameter sigma to %s" % self._alpha_sigma);
+            print "update hyper-parameter sigma to %s" % self._alpha_sigma;
         else:
             self._alpha_mu = self._alpha_mu[numpy.newaxis, :];
             
@@ -1151,15 +1151,15 @@ class VariationalBayes(Inferencer):
             
             # self._alpha_sigma_inv = scipy.linalg.pinv(self._alpha_sigma);
             self._alpha_sigma_inv = scipy.linalg.inv(self._alpha_sigma);
-            print("update hyper-parameter sigma to")
-            print("%s" % self._alpha_sigma);
+            print "update hyper-parameter sigma to"
+            print "%s" % self._alpha_sigma;
         
         return
     
     def export_beta(self, exp_beta_path, top_display=-1):
         output = open(exp_beta_path, 'w');
         E_log_eta = compute_dirichlet_expectation(self._eta);
-        for topic_index in range(self._number_of_topics):
+        for topic_index in xrange(self._number_of_topics):
             output.write("==========\t%d\t==========\n" % (topic_index));
             
             beta_probability = numpy.exp(E_log_eta[topic_index, :] - scipy.misc.logsumexp(E_log_eta[topic_index, :]));
@@ -1194,7 +1194,7 @@ class VariationalBayes(Inferencer):
         assert sum_phi.shape == (self._number_of_topics,)
         
         newton_method_power_index = 0;
-        for newton_method_iteration_index in range(newton_method_iteration):
+        for newton_method_iteration_index in xrange(newton_method_iteration):
             exp_over_doc_zeta = scipy.misc.logsumexp(doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
             exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta);
             assert exp_over_doc_zeta.shape == (self._number_of_topics,);
@@ -1271,7 +1271,7 @@ class VariationalBayes(Inferencer):
         assert doc_zeta_factor.shape == (self._number_of_topics, self._number_of_topics);
         
         newton_method_power_index = 0;
-        for newton_method_iteration_index in range(newton_method_iteration):
+        for newton_method_iteration_index in xrange(newton_method_iteration):
             # print doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * doc_nu_square[:, numpy.newaxis]
             # exp_over_doc_zeta = 1.0 / numpy.sum(numpy.exp(doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * doc_nu_square[:, numpy.newaxis]), axis=1);
             # print scipy.misc.logsumexp(doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
@@ -1294,7 +1294,7 @@ class VariationalBayes(Inferencer):
             
             if self._diagonal_covariance_matrix:
                 if not numpy.all(second_derivative_nu_square) > 0:
-                    print("Hessian matrix is not positive definite: ", second_derivative_nu_square)
+                    print "Hessian matrix is not positive definite: ", second_derivative_nu_square
                     break;
             else:
                 pass
@@ -1339,7 +1339,7 @@ class VariationalBayes(Inferencer):
         exp_doc_log_nu_square = numpy.exp(doc_log_nu_square);
         
         newton_method_power_index = 0;
-        for newton_method_iteration_index in range(newton_method_iteration):
+        for newton_method_iteration_index in xrange(newton_method_iteration):
             log_exp_over_doc_zeta_combine = scipy.misc.logsumexp(doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * exp_doc_log_nu_square[:, numpy.newaxis] - doc_log_nu_square[:, numpy.newaxis], axis=1)
             exp_over_doc_zeta_combine = numpy.exp(-log_exp_over_doc_zeta_combine);
             
@@ -1393,7 +1393,7 @@ class VariationalBayes(Inferencer):
                             hessian_free_iteration=10,
                             hessian_free_threshold=1e-9,
                             ):
-        for hessian_free_iteration_index in range(hessian_free_iteration):
+        for hessian_free_iteration_index in xrange(hessian_free_iteration):
             delta_doc_lambda = self.conjugate_gradient_delta_lambda(doc_lambda, doc_nu_square, doc_zeta_factor, sum_phi, total_word_count, self._number_of_topics);
             
             # delta_doc_lambda /= numpy.sqrt(numpy.sum(delta_doc_lambda**2));
@@ -1438,7 +1438,7 @@ class VariationalBayes(Inferencer):
         p_vector = numpy.copy(z_vector);
         r_z_vector_square_old = numpy.sum(r_vector * z_vector);
 
-        for conjugate_gradient_iteration_index in range(conjugate_gradient_iteration):
+        for conjugate_gradient_iteration_index in xrange(conjugate_gradient_iteration):
             # hessian_p_vector = self.hessian_direction_approximation_lambda(doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count, p_vector);
             hessian_p_vector = self.hessian_damping_direction_approximation_lambda(doc_lambda, doc_nu_square, doc_zeta_factor, sum_phi, total_word_count, p_vector);
             
@@ -1558,7 +1558,7 @@ class VariationalBayes(Inferencer):
         assert damping_factor_denominator_temp.shape == (self._number_of_topics,);
         
         damping_factor_lambda = damping_factor_initialization;
-        for damping_factor_iteration_index in range(damping_factor_iteration):
+        for damping_factor_iteration_index in xrange(damping_factor_iteration):
             damping_factor_denominator = damping_factor_denominator_temp + 0.5 * damping_factor_lambda * direction_vector;
             assert damping_factor_denominator.shape == (self._number_of_topics,);
             damping_factor_denominator *= direction_vector
@@ -1589,7 +1589,7 @@ class VariationalBayes(Inferencer):
                                hessian_free_decay_factor=0.9,
                                hessian_free_reset_interval=100
                                ):
-        for hessian_free_iteration_index in range(hessian_free_iteration):
+        for hessian_free_iteration_index in xrange(hessian_free_iteration):
             delta_doc_nu_square = self.conjugate_gradient_delta_nu_square(doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count, self._number_of_topics);
             
             # delta_doc_nu_square /= numpy.sqrt(numpy.sum(delta_doc_nu_square**2));
@@ -1600,7 +1600,7 @@ class VariationalBayes(Inferencer):
                 conjugate_gradient_power_index += 1;
                 step_alpha = numpy.power(hessian_free_decay_factor, conjugate_gradient_power_index);
                 if conjugate_gradient_power_index >= hessian_free_reset_interval:
-                    print("power index larger than 100", delta_doc_nu_square)
+                    print "power index larger than 100", delta_doc_nu_square
                     step_alpha = 0;
                     break
     
@@ -1633,7 +1633,7 @@ class VariationalBayes(Inferencer):
         
         r_vector_square_old = numpy.sum(r_vector ** 2);
         
-        for conjugate_gradient_iteration_index in range(conjugate_gradient_iteration):
+        for conjugate_gradient_iteration_index in xrange(conjugate_gradient_iteration):
             assert not numpy.any(numpy.isnan(doc_lambda))
             assert not numpy.any(numpy.isnan(doc_nu_square_copy))
             assert not numpy.any(numpy.isnan(doc_zeta_factor))
@@ -1764,7 +1764,7 @@ class VariationalBayes(Inferencer):
         assert damping_factor_denominator_temp.shape == (self._number_of_topics,);
         
         damping_factor_lambda = damping_factor_initialization;
-        for damping_factor_iteration_index in range(damping_factor_iteration):
+        for damping_factor_iteration_index in xrange(damping_factor_iteration):
             damping_factor_denominator = damping_factor_denominator_temp + 0.5 * damping_factor_lambda * direction_vector;
             assert damping_factor_denominator.shape == (self._number_of_topics,);
             damping_factor_denominator *= direction_vector
@@ -1796,7 +1796,7 @@ class VariationalBayes(Inferencer):
                                      conjugate_gradient_threshold=1e-9,
                                      conjugate_gradient_reset_interval=100,
                                      ):
-        for hessian_free_iteration_index in range(hessian_free_iteration):
+        for hessian_free_iteration_index in xrange(hessian_free_iteration):
             delta_doc_log_nu_square = self.conjugate_gradient_delta_log_nu_square(doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count, self._number_of_topics);
             
             # print "check point 1", numpy.sum(numpy.exp(delta_doc_log_nu_square)**2), numpy.sum(delta_doc_log_nu_square**2)
@@ -1847,7 +1847,7 @@ class VariationalBayes(Inferencer):
         p_vector = numpy.copy(z_vector);
         r_z_vector_square_old = numpy.sum(r_vector * z_vector);
         
-        for conjugate_gradient_iteration_index in range(conjugate_gradient_iteration):
+        for conjugate_gradient_iteration_index in xrange(conjugate_gradient_iteration):
             assert numpy.all(numpy.isfinite(doc_lambda)), (conjugate_gradient_iteration_index, doc_lambda)
             assert numpy.all(numpy.isfinite(doc_log_nu_square)), (conjugate_gradient_iteration_index, doc_log_nu_square)
             assert numpy.all(numpy.isfinite(doc_zeta_factor)), (conjugate_gradient_iteration_index, doc_zeta_factor)
@@ -1973,7 +1973,7 @@ class VariationalBayes(Inferencer):
         assert damping_factor_denominator_temp.shape == (self._number_of_topics,);
         
         damping_factor_lambda = damping_factor_initialization;
-        for damping_factor_iteration_index in range(damping_factor_iteration):
+        for damping_factor_iteration_index in xrange(damping_factor_iteration):
             damping_factor_denominator = damping_factor_denominator_temp + 0.5 * damping_factor_lambda * direction_vector;
             assert damping_factor_denominator.shape == (self._number_of_topics,);
             damping_factor_denominator *= direction_vector
@@ -2002,4 +2002,4 @@ class VariationalBayes(Inferencer):
     #
     
 if __name__ == "__main__":
-    print("not implemented...")
+    print "not implemented..."
