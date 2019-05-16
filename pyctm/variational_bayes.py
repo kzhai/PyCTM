@@ -13,6 +13,7 @@ import sklearn
 import sklearn.covariance
 import sys
 import time
+import warnings
 
 from pyctm.inferencer import compute_dirichlet_expectation
 from pyctm.inferencer import Inferencer
@@ -400,7 +401,7 @@ class VariationalBayes(Inferencer):
         # start consumers
         if number_of_processes <= 1:
             number_of_processes = multiprocessing.cpu_count()
-        print('creating %d processes' % number_of_processes)
+        # print('creating %d processes' % number_of_processes)
         processes_e_step = [
             Process_E_Step_Queue(
                 task_queue,
@@ -774,21 +775,22 @@ class VariationalBayes(Inferencer):
     #
 
     def optimize_doc_lambda(self, doc_lambda, arguments):
-
-        optimize_result = scipy.optimize.minimize(
-            self.f_doc_lambda,
-            doc_lambda,
-            args=arguments,
-            method=self._scipy_optimization_method,
-            jac=self.f_prime_doc_lambda,
-            hess=self.f_hessian_doc_lambda,
-            # hess=None,
-            hessp=self.f_hessian_direction_doc_lambda,
-            bounds=None,
-            constraints=(),
-            tol=None,
-            callback=None,
-            options={'disp': False})
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            optimize_result = scipy.optimize.minimize(
+                self.f_doc_lambda,
+                doc_lambda,
+                args=arguments,
+                method=self._scipy_optimization_method,
+                jac=self.f_prime_doc_lambda,
+                hess=self.f_hessian_doc_lambda,
+                # hess=None,
+                hessp=self.f_hessian_direction_doc_lambda,
+                bounds=None,
+                constraints=(),
+                tol=None,
+                callback=None,
+                options={'disp': False})
 
         return optimize_result.x
 
@@ -923,21 +925,22 @@ class VariationalBayes(Inferencer):
 
     def optimize_doc_nu_square(self, doc_nu_square, arguments):
         variable_bounds = tuple([(0, None)] * self._number_of_topics)
-
-        optimize_result = scipy.optimize.minimize(
-            self.f_doc_nu_square,
-            doc_nu_square,
-            args=arguments,
-            method=self._scipy_optimization_method,
-            jac=self.f_prime_doc_nu_square,
-            hess=self.f_hessian_doc_nu_square,
-            # hess=None,
-            hessp=self.f_hessian_direction_doc_nu_square,
-            bounds=variable_bounds,
-            constraints=(),
-            tol=None,
-            callback=None,
-            options={'disp': False})
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            optimize_result = scipy.optimize.minimize(
+                self.f_doc_nu_square,
+                doc_nu_square,
+                args=arguments,
+                method=self._scipy_optimization_method,
+                jac=self.f_prime_doc_nu_square,
+                hess=self.f_hessian_doc_nu_square,
+                # hess=None,
+                hessp=self.f_hessian_direction_doc_nu_square,
+                bounds=variable_bounds,
+                constraints=(),
+                tol=None,
+                callback=None,
+                options={'disp': False})
 
         return optimize_result.x
 
@@ -1055,21 +1058,22 @@ class VariationalBayes(Inferencer):
     def optimize_doc_nu_square_in_log_space(
             self, doc_nu_square, arguments, method_name=None):
         log_doc_nu_square = numpy.log(doc_nu_square)
-
-        optimize_result = scipy.optimize.minimize(
-            self.f_log_doc_nu_square,
-            log_doc_nu_square,
-            args=arguments,
-            method=method_name,
-            jac=self.f_prime_log_doc_nu_square,
-            hess=self.f_hessian_log_doc_nu_square,
-            # hess=None,
-            hessp=self.f_hessian_direction_log_doc_nu_square,
-            bounds=None,
-            constraints=(),
-            tol=None,
-            callback=None,
-            options={'disp': False})
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            optimize_result = scipy.optimize.minimize(
+                self.f_log_doc_nu_square,
+                log_doc_nu_square,
+                args=arguments,
+                method=method_name,
+                jac=self.f_prime_log_doc_nu_square,
+                hess=self.f_hessian_log_doc_nu_square,
+                # hess=None,
+                hessp=self.f_hessian_direction_log_doc_nu_square,
+                bounds=None,
+                constraints=(),
+                tol=None,
+                callback=None,
+                options={'disp': False})
 
         log_doc_nu_square_update = optimize_result.x
 
@@ -1227,21 +1231,21 @@ class VariationalBayes(Inferencer):
         topic_log_likelihood = self.m_step(phi_sufficient_statistics)
         clock_m_step = time.time() - clock_m_step
 
-        print(document_log_likelihood, topic_log_likelihood)
+        print("doc logl: {}, topic logl: {}".format(document_log_likelihood, topic_log_likelihood))
         joint_log_likelihood = document_log_likelihood + topic_log_likelihood
 
-        print(
-            "e_step and m_step of iteration %d finished in %g and %g seconds respectively with log likelihood %g"
-            %
-            (self._counter, clock_e_step, clock_m_step, joint_log_likelihood))
+        # print(
+        #     "e_step and m_step of iteration %d finished in %g and %g seconds respectively with log likelihood %g"
+        #     %
+        #     (self._counter, clock_e_step, clock_m_step, joint_log_likelihood))
 
         clock_hyper_opt = time.time()
         if self._hyper_parameter_optimize_interval > 0 and self._counter % self._hyper_parameter_optimize_interval == 0:
             self.optimize_hyperparameter()
         clock_hyper_opt = time.time() - clock_hyper_opt
-        print(
-            "hyper-parameter optimization of iteration %d finished in %g seconds"
-            % (self._counter, clock_hyper_opt))
+        # print(
+        #     "hyper-parameter optimization of iteration %d finished in %g seconds"
+        #     % (self._counter, clock_hyper_opt))
 
         # if abs((joint_log_likelihood - old_likelihood) / old_likelihood) < self._model_converge_threshold:
         # print "model likelihood converged..."
@@ -1265,7 +1269,7 @@ class VariationalBayes(Inferencer):
         assert self._lambda.shape == (
             self._number_of_documents, self._number_of_topics)
         self._alpha_mu = numpy.mean(self._lambda, axis=0)
-        print("update hyper-parameter mu to %s" % self._alpha_mu)
+        # print("update hyper-parameter mu to %s" % self._alpha_mu)
 
         assert self._nu_square.shape == (
             self._number_of_documents, self._number_of_topics)
@@ -1273,7 +1277,7 @@ class VariationalBayes(Inferencer):
             self._alpha_sigma = numpy.mean(
                 self._nu_square +
                 (self._lambda - self._alpha_mu[numpy.newaxis, :])**2, axis=0)
-            print("update hyper-parameter sigma to %s" % self._alpha_sigma)
+            # print("update hyper-parameter sigma to %s" % self._alpha_sigma)
         else:
             self._alpha_mu = self._alpha_mu[numpy.newaxis, :]
 
@@ -1289,8 +1293,8 @@ class VariationalBayes(Inferencer):
 
             # self._alpha_sigma_inv = scipy.linalg.pinv(self._alpha_sigma);
             self._alpha_sigma_inv = scipy.linalg.inv(self._alpha_sigma)
-            print("update hyper-parameter sigma to")
-            print("%s" % self._alpha_sigma)
+            # print("update hyper-parameter sigma to")
+            # print("%s" % self._alpha_sigma)
 
         return
 
