@@ -1,5 +1,5 @@
 #!/usr/bin/python
-"""regain setup script.
+"""setup script.
 
 Author: Federico Tomasi
 Copyright (c) 2017-2019, Federico Tomasi.

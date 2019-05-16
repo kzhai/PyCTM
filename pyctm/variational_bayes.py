@@ -4,7 +4,6 @@ VariationalBayes for Correlated Topic Models
 """
 
 import multiprocessing
-import nltk
 import numpy
 import queue
 import scipy
@@ -12,12 +11,11 @@ import scipy.misc
 import scipy.optimize
 import sklearn
 import sklearn.covariance
-import string
 import sys
 import time
 
-from inferencer import compute_dirichlet_expectation
-from inferencer import Inferencer
+from pyctm.inferencer import compute_dirichlet_expectation
+from pyctm.inferencer import Inferencer
 
 
 class Process_E_Step_Queue(multiprocessing.Process):
@@ -361,12 +359,9 @@ class VariationalBayes(Inferencer):
     #
 
     def e_step_process_queue(
-            self,
-            parsed_corpus=None,
-            number_of_processes=0,
+            self, parsed_corpus=None, number_of_processes=0,
             local_parameter_iteration=10,
-            local_parameter_converge_threshold=1e-3,
-    ):
+            local_parameter_converge_threshold=1e-3):
         if parsed_corpus == None:
             word_ids = self._parsed_corpus[0]
             word_cts = self._parsed_corpus[1]
@@ -549,11 +544,8 @@ class VariationalBayes(Inferencer):
     #
 
     def e_step(
-            self,
-            parsed_corpus=None,
-            local_parameter_iteration=10,
-            local_parameter_converge_threshold=1e-3,
-    ):
+            self, parsed_corpus=None, local_parameter_iteration=10,
+            local_parameter_converge_threshold=1e-3):
         if parsed_corpus == None:
             word_ids = self._parsed_corpus[0]
             word_cts = self._parsed_corpus[1]
@@ -1597,15 +1589,9 @@ class VariationalBayes(Inferencer):
     #
 
     def hessian_free_lambda(
-            self,
-            doc_lambda,
-            doc_nu_square,
-            doc_zeta_factor,
-            sum_phi,
-            total_word_count,
-            hessian_free_iteration=10,
-            hessian_free_threshold=1e-9,
-    ):
+            self, doc_lambda, doc_nu_square, doc_zeta_factor, sum_phi,
+            total_word_count, hessian_free_iteration=10,
+            hessian_free_threshold=1e-9):
         for hessian_free_iteration_index in range(hessian_free_iteration):
             delta_doc_lambda = self.conjugate_gradient_delta_lambda(
                 doc_lambda, doc_nu_square, doc_zeta_factor, sum_phi,
@@ -1878,16 +1864,11 @@ class VariationalBayes(Inferencer):
         return doc_nu_square
 
     def conjugate_gradient_delta_nu_square(
-            self,
-            doc_lambda,
-            doc_nu_square,
-            doc_zeta_factor,
-            total_word_count,
+            self, doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count,
             conjugate_gradient_iteration=100,
             conjugate_gradient_threshold=1e-6,
             conjugate_gradient_decay_factor=0.9,
-            conjugate_gradient_reset_interval=100,
-    ):
+            conjugate_gradient_reset_interval=100):
         doc_nu_square_copy = numpy.copy(doc_nu_square)
         # delta_doc_nu_square = numpy.ones(self._number_of_topics);
         delta_doc_nu_square = numpy.zeros(self._number_of_topics)
@@ -2103,15 +2084,9 @@ class VariationalBayes(Inferencer):
     #
 
     def hessian_free_nu_square_in_log_space(
-            self,
-            doc_lambda,
-            doc_nu_square,
-            doc_zeta_factor,
-            total_word_count,
-            hessian_free_iteration=10,
-            conjugate_gradient_threshold=1e-9,
-            conjugate_gradient_reset_interval=100,
-    ):
+            self, doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count,
+            hessian_free_iteration=10, conjugate_gradient_threshold=1e-9,
+            conjugate_gradient_reset_interval=100):
         for hessian_free_iteration_index in range(hessian_free_iteration):
             delta_doc_log_nu_square = self.conjugate_gradient_delta_log_nu_square(
                 doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count,
@@ -2132,16 +2107,11 @@ class VariationalBayes(Inferencer):
     '''
 
     def conjugate_gradient_delta_log_nu_square(
-            self,
-            doc_lambda,
-            doc_nu_square,
-            doc_zeta_factor,
-            total_word_count,
+            self, doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count,
             conjugate_gradient_iteration=100,
             conjugate_gradient_threshold=1e-9,
             conjugate_gradient_reset_interval=100,
-            precondition_hessian_matrix=True,
-    ):
+            precondition_hessian_matrix=True):
         doc_log_nu_square = numpy.log(doc_nu_square)
         # delta_doc_log_nu_square = numpy.random.random(self._number_of_topics);
         delta_doc_log_nu_square = numpy.zeros(self._number_of_topics)
@@ -2380,13 +2350,3 @@ class VariationalBayes(Inferencer):
         damping_factor_lambda = damping_factor_initialization
 
         return hessian_direction_approximation + damping_factor_lambda * direction_vector
-
-    #
-    #
-    #
-    #
-    #
-
-
-if __name__ == "__main__":
-    print("not implemented...")
