@@ -2,7 +2,7 @@
 """setup script.
 
 Author: Federico Tomasi
-Copyright (c) 2017-2019, Federico Tomasi.
+Copyright (c) 2019, Federico Tomasi.
 Licensed under the BSD 3-Clause License (see LICENSE.txt).
 """
 

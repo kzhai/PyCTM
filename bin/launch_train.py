@@ -1,11 +1,12 @@
 #!/usr/bin/python
-import cPickle, getopt, sys, time, re
-import datetime, os;
+import datetime
+import optparse
+import os
+import pickle
+import sys
 
-import scipy.io;
-import nltk;
-import numpy;
-import optparse;
+from pyctm import variational_bayes
+
 
 def parse_args():
     parser = optparse.OptionParser()
@@ -13,7 +14,7 @@ def parse_args():
                         input_directory=None,
                         output_directory=None,
                         # dictionary=None,
-                        
+
                         # parameter set 2
                         training_iterations=-1,
                         snapshot_interval=10,
@@ -23,7 +24,7 @@ def parse_args():
                         alpha_mu=0.,
                         alpha_sigma=1,
                         alpha_beta=-1,
-                        
+
                         # parameter set 4
                         optimization_method=None,
                         number_of_processes=1,
@@ -36,10 +37,10 @@ def parse_args():
     parser.add_option("--output_directory", type="string", dest="output_directory",
                       help="output directory [None]");
     # parser.add_option("--corpus_name", type="string", dest="corpus_name",
-                      # help="the corpus name [None]")
+    # help="the corpus name [None]")
     # parser.add_option("--dictionary", type="string", dest="dictionary",
-                      # help="the dictionary file [None]")
-    
+    # help="the dictionary file [None]")
+
     # parameter set 2
     parser.add_option("--number_of_topics", type="int", dest="number_of_topics",
                       help="total number of topics [-1]");
@@ -47,7 +48,7 @@ def parse_args():
                       help="total number of iterations [-1]");
     parser.add_option("--snapshot_interval", type="int", dest="snapshot_interval",
                       help="snapshot interval [10]");
-                      
+
     # parameter set 3
     parser.add_option("--alpha_mu", type="float", dest="alpha_mu",
                       help="hyper-parameter for logistic normal distribution of topic [0.0]")
@@ -55,21 +56,21 @@ def parse_args():
                       help="hyper-parameter for logistic normal distribution of topic [1.0]")
     parser.add_option("--alpha_beta", type="float", dest="alpha_beta",
                       help="hyper-parameter for Dirichlet distribution of vocabulary [1.0/number_of_types]")
-    
+
     # parameter set 4
     parser.add_option("--optimization_method", type="string", dest="optimization_method",
                       help="optimization method for logistic normal distribution");
     parser.add_option("--number_of_processes", type="int", dest="number_of_processes",
                       help="number of processes [1]")
-                      
+
     # parser.add_option("--diagonal_covariance_matrix", action="store_true", dest="diagonal_covariance_matrix",
-                      # help="diagonal covariance matrix");
+    # help="diagonal covariance matrix");
     # parser.add_option("--inference_mode", type="int", dest="inference_mode",
-                      # help="inference mode [ " + 
-                            # "0: hybrid inference, " + 
-                            # "1: monte carlo, " + 
-                            # "2: variational bayes " + 
-                            # "]");
+    # help="inference mode [ " +
+    # "0: hybrid inference, " +
+    # "1: monte carlo, " +
+    # "2: variational bayes " +
+    # "]");
     # parser.add_option("--inference_mode", action="store_true", dest="inference_mode",
     #                  help="run latent Dirichlet allocation in lda mode");
 
@@ -87,7 +88,7 @@ def main():
     assert(options.snapshot_interval > 0);
     if options.snapshot_interval > 0:
         snapshot_interval = options.snapshot_interval;
-    
+
     # parameter set 4
     optimization_method = options.optimization_method;
     if optimization_method == None:
@@ -97,16 +98,16 @@ def main():
         sys.stderr.write("invalid setting for number_of_processes, adjust to 1...\n");
         number_of_processes = 1;
     # diagonal_covariance_matrix = options.diagonal_covariance_matrix;
-    
+
     # parameter set 1
     # assert(options.corpus_name!=None);
     assert(options.input_directory != None);
     assert(options.output_directory != None);
-    
+
     input_directory = options.input_directory;
     input_directory = input_directory.rstrip("/");
     corpus_name = os.path.basename(input_directory);
-    
+
     output_directory = options.output_directory;
     if not os.path.exists(output_directory):
         os.mkdir(output_directory);
@@ -120,8 +121,8 @@ def main():
     train_docs = [];
     for line in input_doc_stream:
         train_docs.append(line.strip().lower());
-    print "successfully load all training docs from %s..." % (os.path.abspath(train_docs_path));
-    
+    print("successfully load all training docs from %s..." % (os.path.abspath(train_docs_path)));
+
     # Vocabulary
     vocabulary_path = os.path.join(input_directory, 'voc.dat');
     input_voc_stream = open(vocabulary_path, 'r');
@@ -129,8 +130,8 @@ def main():
     for line in input_voc_stream:
         vocab.append(line.strip().lower().split()[0]);
     vocab = list(set(vocab));
-    print "successfully load all the words from %s..." % (os.path.abspath(vocabulary_path));
-    
+    print("successfully load all the words from %s..." % (os.path.abspath(vocabulary_path)));
+
     # parameter set 3
     alpha_mu = options.alpha_mu;
     # assert(options.alpha_sigma>0);
@@ -159,14 +160,14 @@ def main():
     # suffix += "-%s" % (resample_topics);
     # suffix += "-%s" % (hash_oov_words);
     suffix += "/";
-    
+
     output_directory = os.path.join(output_directory, suffix);
     os.mkdir(os.path.abspath(output_directory));
 
     # dict_file = options.dictionary;
     # if dict_file != None:
-        # dict_file = dict_file.strip();
-        
+    # dict_file = dict_file.strip();
+
     # store all the options to a file
     options_output_file = open(output_directory + "option.txt", 'w');
     # parameter set 1
@@ -187,26 +188,26 @@ def main():
     # options_output_file.write("diagonal_covariance_matrix=%s\n" % (diagonal_covariance_matrix));
     options_output_file.close()
 
-    print "========== ========== ========== ========== =========="
+    print("========== ========== ========== ========== ==========")
     # parameter set 1
-    print "output_directory=" + output_directory
-    print "input_directory=" + input_directory
-    print "corpus_name=" + corpus_name
+    print("output_directory=" + output_directory)
+    print("input_directory=" + input_directory)
+    print("corpus_name=" + corpus_name)
     # print "dictionary file=" + str(dict_file)
     # parameter set 2
-    print "training_iterations=%d" % (training_iterations);
-    print "snapshot_interval=" + str(snapshot_interval);
-    print "number_of_topics=" + str(number_of_topics)
+    print("training_iterations=%d" % (training_iterations));
+    print("snapshot_interval=" + str(snapshot_interval));
+    print("number_of_topics=" + str(number_of_topics))
     # parameter set 3
-    print "alpha_mu=" + str(alpha_mu)
-    print "alpha_sigma=" + str(alpha_sigma)
-    print "alpha_beta=" + str(alpha_beta)
+    print("alpha_mu=" + str(alpha_mu))
+    print("alpha_sigma=" + str(alpha_sigma))
+    print("alpha_beta=" + str(alpha_beta))
     # parameter set 4
-    print "optimization_method=%s" % (optimization_method)
-    print "number_of_processes=%d" % (number_of_processes)
+    print("optimization_method=%s" % (optimization_method))
+    print("number_of_processes=%d" % (number_of_processes))
     # print "diagonal_covariance_matrix=%s" % (diagonal_covariance_matrix)
-    print "========== ========== ========== ========== =========="
-    
+    print("========== ========== ========== ========== ==========")
+
     '''
     if inference_mode==0:
         import hybrid
@@ -221,22 +222,20 @@ def main():
         sys.stderr.write("error: unrecognized inference mode %d...\n" % (inference_mode));
         return;
     '''
-    
-    import variational_bayes
     ctm_inferencer = variational_bayes.VariationalBayes(optimization_method);
-    
+
     ctm_inferencer._initialize(train_docs, vocab, number_of_topics, alpha_mu, alpha_sigma, alpha_beta);
-    
-    for iteration in xrange(training_iterations):
+
+    for iteration in range(training_iterations):
         ctm_inferencer.learning(number_of_processes);
-        
+
         if (ctm_inferencer._counter % snapshot_interval == 0):
             ctm_inferencer.export_beta(os.path.join(output_directory, 'exp_beta-' + str(ctm_inferencer._counter)));
             model_snapshot_path = os.path.join(output_directory, 'model-' + str(ctm_inferencer._counter));
-            cPickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
-            
+            pickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
+
     model_snapshot_path = os.path.join(output_directory, 'model-' + str(ctm_inferencer._counter));
-    cPickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
-    
+    pickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
+
 if __name__ == '__main__':
     main()

@@ -1,11 +1,11 @@
 #!/usr/bin/python
-import cPickle, getopt, sys, time, re
-import datetime, os;
+import optparse
+import os
+import pickle
+import sys
 
-import scipy.io;
-import nltk;
-import numpy;
-import optparse;
+import numpy
+
 
 def parse_args():
     parser = optparse.OptionParser()
@@ -50,13 +50,13 @@ def main():
 
     snapshot_index = options.snapshot_index;
 
-    print "========== ========== ========== ========== =========="
+    print("========== ========== ========== ========== ==========")
     # parameter set 1
-    print "model_directory=" + model_directory
-    print "input_directory=" + input_directory
-    print "corpus_name=" + input_corpus_name
-    print "snapshot_index=" + str(snapshot_index);
-    print "========== ========== ========== ========== =========="
+    print("model_directory=" + model_directory)
+    print("input_directory=" + input_directory)
+    print("corpus_name=" + input_corpus_name)
+    print("snapshot_index=" + str(snapshot_index));
+    print("========== ========== ========== ========== ==========")
 
     # Document
     test_docs_path = os.path.join(input_directory, 'test.dat')
@@ -64,7 +64,7 @@ def main():
     test_docs = [];
     for line in input_doc_stream:
         test_docs.append(line.strip().lower());
-    print "successfully load all testing docs from %s..." % (os.path.abspath(test_docs_path));
+    print("successfully load all testing docs from %s..." % (os.path.abspath(test_docs_path)));
     
     if snapshot_index >= 0:
         input_snapshot_path = os.path.join(model_directory, ("model-%d" % (snapshot_index)))
@@ -91,11 +91,11 @@ def main():
 
 def evaluate_snapshot(input_snapshot_path, test_docs, output_lambda_path, output_nu_square_path):
     # import hybrid, monte_carlo, variational_bayes;
-    lda_inferencer = cPickle.load(open(input_snapshot_path, "rb"));
+    lda_inferencer = pickle.load(open(input_snapshot_path, "rb"));
     # print 'successfully load model snapshot %s...' % (os.path.abspath(input_snapshot_path));
     
     log_likelihood, lambda_values, nu_square_values = lda_inferencer.inference(test_docs);
-    print "held-out likelihood of snapshot %s is %g" % (os.path.abspath(input_snapshot_path), log_likelihood);
+    print("held-out likelihood of snapshot %s is %g" % (os.path.abspath(input_snapshot_path), log_likelihood));
     numpy.savetxt(output_lambda_path, lambda_values);
     numpy.savetxt(output_nu_square_path, nu_square_values);
 
