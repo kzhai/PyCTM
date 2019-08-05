@@ -4,7 +4,7 @@ VariationalBayes for Correlated Topic Models
 """
 
 import multiprocessing
-import numpy
+import numpy as np
 import queue
 import scipy
 import scipy.misc
@@ -55,7 +55,7 @@ class Process_E_Step_Queue(multiprocessing.Process):
 
         if result_sufficient_statistics_queue != None:
             self._E_log_prob_eta = self._E_log_eta - scipy.misc.logsumexp(
-                self._E_log_eta, axis=1)[:, numpy.newaxis]
+                self._E_log_eta, axis=1)[:, np.newaxis]
 
         self.optimize_doc_lambda = optimize_doc_lambda
         # self.optimize_doc_nu_square = optimize_doc_nu_square;
@@ -66,12 +66,12 @@ class Process_E_Step_Queue(multiprocessing.Process):
         words_log_likelihood = 0
 
         # initialize a V-by-K matrix phi sufficient statistics
-        phi_sufficient_statistics = numpy.zeros(
+        phi_sufficient_statistics = np.zeros(
             (self._number_of_topics, self._number_of_types))
 
         # initialize a D-by-K matrix lambda and nu_square values
-        # lambda_values = numpy.zeros((number_of_documents, self._number_of_topics)) # + self._alpha_mu[numpy.newaxis, :];
-        # nu_square_values = numpy.ones((number_of_documents, self._number_of_topics)) # + self._alpha_sigma[numpy.newaxis, :];
+        # lambda_values = np.zeros((number_of_documents, self._number_of_topics)) # + self._alpha_mu[np.newaxis, :];
+        # nu_square_values = np.ones((number_of_documents, self._number_of_topics)) # + self._alpha_sigma[np.newaxis, :];
 
         while not self._task_queue.empty():
             try:
@@ -80,25 +80,25 @@ class Process_E_Step_Queue(multiprocessing.Process):
             except queue.Empty:
                 continue
 
-            doc_lambda = numpy.zeros(self._number_of_topics)
-            doc_nu_square = numpy.ones(self._number_of_topics)
+            doc_lambda = np.zeros(self._number_of_topics)
+            doc_nu_square = np.ones(self._number_of_topics)
 
             assert term_counts.shape == (1, len(term_ids))
             # compute the total number of words
-            doc_word_count = numpy.sum(term_counts)
+            doc_word_count = np.sum(term_counts)
 
             # initialize gamma for this document
             # doc_lambda = lambda_values[doc_id, :]
             # doc_nu_square = nu_square_values[doc_id, :]
             '''
             if self._diagonal_covariance_matrix:
-                doc_lambda = numpy.random.multivariate_normal(self._alpha_mu, numpy.diag(self._alpha_sigma));
-                doc_nu_square = numpy.copy(self._alpha_sigma);
+                doc_lambda = np.random.multivariate_normal(self._alpha_mu, np.diag(self._alpha_sigma));
+                doc_nu_square = np.copy(self._alpha_sigma);
             else:
-                #doc_lambda = numpy.random.multivariate_normal(self._alpha_mu[0, :], self._alpha_sigma);
-                #doc_nu_square = numpy.copy(numpy.diag(self._alpha_sigma));
-                doc_lambda = numpy.random.multivariate_normal(numpy.zeros(self._number_of_topics), numpy.eye(self._number_of_topics))
-                doc_nu_square = numpy.ones(self._number_of_topics)
+                #doc_lambda = np.random.multivariate_normal(self._alpha_mu[0, :], self._alpha_sigma);
+                #doc_nu_square = np.copy(np.diag(self._alpha_sigma));
+                doc_lambda = np.random.multivariate_normal(np.zeros(self._number_of_topics), np.eye(self._number_of_topics))
+                doc_nu_square = np.ones(self._number_of_topics)
             assert doc_lambda.shape==(self._number_of_topics,)
             assert doc_nu_square.shape==(self._number_of_topics,)
             '''
@@ -107,10 +107,10 @@ class Process_E_Step_Queue(multiprocessing.Process):
             # term_counts = word_cts[doc_id];
 
             # update zeta in close form
-            # doc_zeta = numpy.sum(numpy.exp(doc_lambda+0.5*doc_nu_square));
+            # doc_zeta = np.sum(np.exp(doc_lambda+0.5*doc_nu_square));
             doc_zeta_factor = doc_lambda + 0.5 * doc_nu_square
             assert doc_zeta_factor.shape == (self._number_of_topics, )
-            doc_zeta_factor = numpy.tile(
+            doc_zeta_factor = np.tile(
                 doc_zeta_factor, (self._number_of_topics, 1))
             assert doc_zeta_factor.shape == (
                 self._number_of_topics, self._number_of_topics)
@@ -120,11 +120,11 @@ class Process_E_Step_Queue(multiprocessing.Process):
                 # update phi in close form
                 assert self._E_log_eta.shape == (
                     self._number_of_topics, self._number_of_types)
-                log_phi = self._E_log_eta[:, term_ids] + doc_lambda[:, numpy.
+                log_phi = self._E_log_eta[:, term_ids] + doc_lambda[:, np.
                                                                     newaxis]
                 assert log_phi.shape == (self._number_of_topics, len(term_ids))
                 log_phi -= scipy.misc.logsumexp(log_phi,
-                                                axis=0)[numpy.newaxis, :]
+                                                axis=0)[np.newaxis, :]
                 assert log_phi.shape == (self._number_of_topics, len(term_ids))
 
                 #
@@ -134,9 +134,9 @@ class Process_E_Step_Queue(multiprocessing.Process):
                 #
 
                 # update lambda
-                sum_phi = numpy.exp(
+                sum_phi = np.exp(
                     scipy.misc.logsumexp(
-                        log_phi + numpy.log(term_counts), axis=1))
+                        log_phi + np.log(term_counts), axis=1))
                 arguments = (
                     doc_nu_square, doc_zeta_factor, sum_phi, doc_word_count)
                 doc_lambda = self.optimize_doc_lambda(doc_lambda, arguments)
@@ -149,10 +149,10 @@ class Process_E_Step_Queue(multiprocessing.Process):
                 #
 
                 # update zeta in close form
-                # doc_zeta = numpy.sum(numpy.exp(doc_lambda+0.5*doc_nu_square));
+                # doc_zeta = np.sum(np.exp(doc_lambda+0.5*doc_nu_square));
                 doc_zeta_factor = doc_lambda + 0.5 * doc_nu_square
                 assert doc_zeta_factor.shape == (self._number_of_topics, )
-                doc_zeta_factor = numpy.tile(
+                doc_zeta_factor = np.tile(
                     doc_zeta_factor, (self._number_of_topics, 1))
                 assert doc_zeta_factor.shape == (
                     self._number_of_topics, self._number_of_topics)
@@ -177,15 +177,15 @@ class Process_E_Step_Queue(multiprocessing.Process):
                 #
 
                 # update zeta in close form
-                # doc_zeta = numpy.sum(numpy.exp(doc_lambda+0.5*doc_nu_square));
+                # doc_zeta = np.sum(np.exp(doc_lambda+0.5*doc_nu_square));
                 doc_zeta_factor = doc_lambda + 0.5 * doc_nu_square
                 assert doc_zeta_factor.shape == (self._number_of_topics, )
-                doc_zeta_factor = numpy.tile(
+                doc_zeta_factor = np.tile(
                     doc_zeta_factor, (self._number_of_topics, 1))
                 assert doc_zeta_factor.shape == (
                     self._number_of_topics, self._number_of_topics)
 
-                # mean_change = numpy.mean(abs(gamma_update - lambda_values[doc_id, :]));
+                # mean_change = np.mean(abs(gamma_update - lambda_values[doc_id, :]));
                 # lambda_values[doc_id, :] = gamma_update;
                 # if mean_change <= local_parameter_converge_threshold:
                 # break;
@@ -194,57 +194,57 @@ class Process_E_Step_Queue(multiprocessing.Process):
 
             # print "process document %d..." % doc_id
 
-            # document_log_likelihood -= 0.5 * self._number_of_topics * numpy.log(2 * numpy.pi)
+            # document_log_likelihood -= 0.5 * self._number_of_topics * np.log(2 * np.pi)
             if self._diagonal_covariance_matrix:
-                document_log_likelihood -= 0.5 * numpy.sum(
-                    numpy.log(self._alpha_sigma))
-                document_log_likelihood -= 0.5 * numpy.sum(
+                document_log_likelihood -= 0.5 * np.sum(
+                    np.log(self._alpha_sigma))
+                document_log_likelihood -= 0.5 * np.sum(
                     doc_nu_square / self._alpha_sigma)
-                document_log_likelihood -= 0.5 * numpy.sum(
+                document_log_likelihood -= 0.5 * np.sum(
                     (doc_lambda - self._alpha_mu)**2 / self._alpha_sigma)
             else:
-                # document_log_likelihood -= 0.5 * numpy.log(numpy.linalg.det(self._alpha_sigma));
-                document_log_likelihood -= 0.5 * numpy.log(
+                # document_log_likelihood -= 0.5 * np.log(np.linalg.det(self._alpha_sigma));
+                document_log_likelihood -= 0.5 * np.log(
                     scipy.linalg.det(self._alpha_sigma) + 1e-30)
-                document_log_likelihood -= 0.5 * numpy.sum(
-                    doc_nu_square * numpy.diag(self._alpha_sigma_inv))
-                document_log_likelihood -= 0.5 * numpy.dot(
-                    numpy.dot(
-                        (self._alpha_mu - doc_lambda[numpy.newaxis, :]),
+                document_log_likelihood -= 0.5 * np.sum(
+                    doc_nu_square * np.diag(self._alpha_sigma_inv))
+                document_log_likelihood -= 0.5 * np.dot(
+                    np.dot(
+                        (self._alpha_mu - doc_lambda[np.newaxis, :]),
                         self._alpha_sigma_inv),
-                    (self._alpha_mu - doc_lambda[numpy.newaxis, :]).T)
+                    (self._alpha_mu - doc_lambda[np.newaxis, :]).T)
 
-            document_log_likelihood += numpy.sum(
-                numpy.sum(numpy.exp(log_phi) * term_counts, axis=1) *
+            document_log_likelihood += np.sum(
+                np.sum(np.exp(log_phi) * term_counts, axis=1) *
                 doc_lambda)
-            # use the fact that doc_zeta = numpy.sum(numpy.exp(doc_lambda+0.5*doc_nu_square)), to cancel the factors
+            # use the fact that doc_zeta = np.sum(np.exp(doc_lambda+0.5*doc_nu_square)), to cancel the factors
             document_log_likelihood -= scipy.misc.logsumexp(
                 doc_lambda + 0.5 * doc_nu_square) * doc_word_count
 
             document_log_likelihood += 0.5 * self._number_of_topics
-            # document_log_likelihood += 0.5 * self._number_of_topics * numpy.log(2 * numpy.pi)
-            document_log_likelihood += 0.5 * numpy.sum(
-                numpy.log(doc_nu_square))
+            # document_log_likelihood += 0.5 * self._number_of_topics * np.log(2 * np.pi)
+            document_log_likelihood += 0.5 * np.sum(
+                np.log(doc_nu_square))
 
-            document_log_likelihood -= numpy.sum(
-                numpy.exp(log_phi) * log_phi * term_counts)
+            document_log_likelihood -= np.sum(
+                np.exp(log_phi) * log_phi * term_counts)
 
             # Note: all terms including E_q[p(\eta | \beta)], i.e., terms involving \Psi(\eta), are cancelled due to \eta updates in M-step
             if self._result_sufficient_statistics_queue == None:
                 # compute the phi terms
-                words_log_likelihood += numpy.sum(
-                    numpy.exp(log_phi + numpy.log(term_counts)) *
+                words_log_likelihood += np.sum(
+                    np.exp(log_phi + np.log(term_counts)) *
                     self._E_log_prob_eta[:, term_ids])
 
             # lambda_values[doc_id, :] = doc_lambda;
             # nu_square_values[doc_id, :] = doc_nu_square;
 
-            assert numpy.all(doc_nu_square > 0)
+            assert np.all(doc_nu_square > 0)
 
             assert log_phi.shape == (self._number_of_topics, len(term_ids))
             assert term_counts.shape == (1, len(term_ids))
-            phi_sufficient_statistics[:, term_ids] += numpy.exp(
-                log_phi + numpy.log(term_counts))
+            phi_sufficient_statistics[:, term_ids] += np.exp(
+                log_phi + np.log(term_counts))
 
             # if (doc_id+1) % 1000==0:
             # print "successfully processed %d documents..." % (doc_id+1);
@@ -305,13 +305,13 @@ class VariationalBayes(Inferencer):
         self._number_of_documents = len(self._parsed_corpus[0])
 
         # initialize a D-by-K matrix gamma
-        self._lambda = numpy.zeros(
+        self._lambda = np.zeros(
             (self._number_of_documents, self._number_of_topics))
-        self._nu_square = numpy.ones(
+        self._nu_square = np.ones(
             (self._number_of_documents, self._number_of_topics))
 
         # initialize a V-by-K matrix beta, subject to the sum over every row is 1
-        self._eta = numpy.random.gamma(
+        self._eta = np.random.gamma(
             100., 1. / 100., (self._number_of_topics, self._number_of_types))
 
     def parse_data(self, corpus=None):
@@ -339,10 +339,10 @@ class VariationalBayes(Inferencer):
                 sys.stderr.write("warning: document collapsed during parsing")
                 continue
 
-            word_ids.append(numpy.array(list(document_word_dict.keys())))
+            word_ids.append(np.array(list(document_word_dict.keys())))
             word_cts.append(
-                numpy.array(list(
-                    document_word_dict.values()))[numpy.newaxis, :])
+                np.array(list(
+                    document_word_dict.values()))[np.newaxis, :])
 
             doc_count += 1
             if doc_count % 10000 == 0:
@@ -377,7 +377,7 @@ class VariationalBayes(Inferencer):
         assert E_log_eta.shape == (
             self._number_of_topics, self._number_of_types)
         # if parsed_corpus!=None:
-        # E_log_prob_eta = E_log_eta-scipy.misc.logsumexp(E_log_eta, axis=1)[:, numpy.newaxis]
+        # E_log_prob_eta = E_log_eta-scipy.misc.logsumexp(E_log_eta, axis=1)[:, np.newaxis]
 
         task_queue = multiprocessing.JoinableQueue()
         for (doc_id, word_id, word_ct) in zip(list(range(number_of_documents)),
@@ -425,12 +425,12 @@ class VariationalBayes(Inferencer):
         task_queue.close()
 
         # initialize a D-by-K matrix lambda and nu_square values
-        lambda_values = numpy.zeros(
+        lambda_values = np.zeros(
             (number_of_documents,
-             self._number_of_topics))  # + self._alpha_mu[numpy.newaxis, :];
-        nu_square_values = numpy.zeros(
+             self._number_of_topics))  # + self._alpha_mu[np.newaxis, :];
+        nu_square_values = np.zeros(
             (number_of_documents,
-             self._number_of_topics))  # + self._alpha_sigma[numpy.newaxis, :];
+             self._number_of_topics))  # + self._alpha_sigma[np.newaxis, :];
 
         # for result_queue_element_index in xrange(result_doc_parameter_queue.qsize()):
         # while not result_doc_parameter_queue.empty():
@@ -454,7 +454,7 @@ class VariationalBayes(Inferencer):
             self._nu_square = nu_square_values
 
             # initialize a K-by-V matrix phi sufficient statistics
-            phi_sufficient_statistics = numpy.zeros(
+            phi_sufficient_statistics = np.zeros(
                 (self._number_of_topics, self._number_of_types))
 
             # for result_queue_element_index in xrange(result_sufficient_statistics_queue.qsize()):
@@ -497,12 +497,12 @@ class VariationalBayes(Inferencer):
             result_log_likelihood_queue,
             result_sufficient_statistics_queue=None):
         # initialize a D-by-K matrix lambda and nu_square values
-        lambda_values = numpy.zeros(
+        lambda_values = np.zeros(
             (number_of_documents,
-             self._number_of_topics))  # + self._alpha_mu[numpy.newaxis, :];
-        nu_square_values = numpy.zeros(
+             self._number_of_topics))  # + self._alpha_mu[np.newaxis, :];
+        nu_square_values = np.zeros(
             (number_of_documents,
-             self._number_of_topics))  # + self._alpha_sigma[numpy.newaxis, :];
+             self._number_of_topics))  # + self._alpha_sigma[np.newaxis, :];
 
         counter = 0
         # for result_queue_element_index in xrange(result_doc_parameter_queue.qsize()):
@@ -527,7 +527,7 @@ class VariationalBayes(Inferencer):
             return log_likelihood, lambda_values, nu_square_values
         else:
             # initialize a K-by-V matrix phi sufficient statistics
-            phi_sufficient_statistics = numpy.zeros(
+            phi_sufficient_statistics = np.zeros(
                 (self._number_of_topics, self._number_of_types))
 
             # for result_queue_element_index in xrange(result_sufficient_statistics_queue.qsize()):
@@ -562,37 +562,37 @@ class VariationalBayes(Inferencer):
             self._number_of_topics, self._number_of_types)
         if parsed_corpus != None:
             E_log_prob_eta = E_log_eta - scipy.misc.logsumexp(
-                E_log_eta, axis=1)[:, numpy.newaxis]
+                E_log_eta, axis=1)[:, np.newaxis]
 
         document_log_likelihood = 0
         words_log_likelihood = 0
 
         # initialize a V_matrix-by-K matrix phi sufficient statistics
-        phi_sufficient_statistics = numpy.zeros(
+        phi_sufficient_statistics = np.zeros(
             (self._number_of_topics, self._number_of_types))
 
         # initialize a D-by-K matrix lambda and nu_square values
-        lambda_values = numpy.zeros(
+        lambda_values = np.zeros(
             (number_of_documents,
-             self._number_of_topics))  # + self._alpha_mu[numpy.newaxis, :];
-        nu_square_values = numpy.ones(
+             self._number_of_topics))  # + self._alpha_mu[np.newaxis, :];
+        nu_square_values = np.ones(
             (number_of_documents,
-             self._number_of_topics))  # + self._alpha_sigma[numpy.newaxis, :];
+             self._number_of_topics))  # + self._alpha_sigma[np.newaxis, :];
 
         # iterate over all documents
-        for doc_id in numpy.random.permutation(number_of_documents):
+        for doc_id in np.random.permutation(number_of_documents):
             # initialize gamma for this document
             doc_lambda = lambda_values[doc_id, :]
             doc_nu_square = nu_square_values[doc_id, :]
             '''
             if self._diagonal_covariance_matrix:
-                doc_lambda = numpy.random.multivariate_normal(self._alpha_mu, numpy.diag(self._alpha_sigma));
-                doc_nu_square = numpy.copy(self._alpha_sigma);
+                doc_lambda = np.random.multivariate_normal(self._alpha_mu, np.diag(self._alpha_sigma));
+                doc_nu_square = np.copy(self._alpha_sigma);
             else:
-                #doc_lambda = numpy.random.multivariate_normal(self._alpha_mu[0, :], self._alpha_sigma);
-                #doc_nu_square = numpy.copy(numpy.diag(self._alpha_sigma));
-                doc_lambda = numpy.random.multivariate_normal(numpy.zeros(self._number_of_topics), numpy.eye(self._number_of_topics))
-                doc_nu_square = numpy.ones(self._number_of_topics)
+                #doc_lambda = np.random.multivariate_normal(self._alpha_mu[0, :], self._alpha_sigma);
+                #doc_nu_square = np.copy(np.diag(self._alpha_sigma));
+                doc_lambda = np.random.multivariate_normal(np.zeros(self._number_of_topics), np.eye(self._number_of_topics))
+                doc_nu_square = np.ones(self._number_of_topics)
             assert doc_lambda.shape==(self._number_of_topics,)
             assert doc_nu_square.shape==(self._number_of_topics,)
             '''
@@ -601,13 +601,13 @@ class VariationalBayes(Inferencer):
             term_counts = word_cts[doc_id]
             assert term_counts.shape == (1, len(term_ids))
             # compute the total number of words
-            doc_word_count = numpy.sum(word_cts[doc_id])
+            doc_word_count = np.sum(word_cts[doc_id])
 
             # update zeta in close form
-            # doc_zeta = numpy.sum(numpy.exp(doc_lambda+0.5*doc_nu_square));
+            # doc_zeta = np.sum(np.exp(doc_lambda+0.5*doc_nu_square));
             doc_zeta_factor = doc_lambda + 0.5 * doc_nu_square
             assert doc_zeta_factor.shape == (self._number_of_topics, )
-            doc_zeta_factor = numpy.tile(
+            doc_zeta_factor = np.tile(
                 doc_zeta_factor, (self._number_of_topics, 1))
             assert doc_zeta_factor.shape == (
                 self._number_of_topics, self._number_of_topics)
@@ -617,10 +617,10 @@ class VariationalBayes(Inferencer):
                 # update phi in close form
                 assert E_log_eta.shape == (
                     self._number_of_topics, self._number_of_types)
-                log_phi = E_log_eta[:, term_ids] + doc_lambda[:, numpy.newaxis]
+                log_phi = E_log_eta[:, term_ids] + doc_lambda[:, np.newaxis]
                 assert log_phi.shape == (self._number_of_topics, len(term_ids))
                 log_phi -= scipy.misc.logsumexp(log_phi,
-                                                axis=0)[numpy.newaxis, :]
+                                                axis=0)[np.newaxis, :]
                 assert log_phi.shape == (self._number_of_topics, len(term_ids))
 
                 #
@@ -630,9 +630,9 @@ class VariationalBayes(Inferencer):
                 #
 
                 # update lambda
-                sum_phi = numpy.exp(
+                sum_phi = np.exp(
                     scipy.misc.logsumexp(
-                        log_phi + numpy.log(term_counts), axis=1))
+                        log_phi + np.log(term_counts), axis=1))
                 arguments = (
                     doc_nu_square, doc_zeta_factor, sum_phi, doc_word_count)
                 doc_lambda = self.optimize_doc_lambda(doc_lambda, arguments)
@@ -652,10 +652,10 @@ class VariationalBayes(Inferencer):
                 #
 
                 # update zeta in close form
-                # doc_zeta = numpy.sum(numpy.exp(doc_lambda+0.5*doc_nu_square));
+                # doc_zeta = np.sum(np.exp(doc_lambda+0.5*doc_nu_square));
                 doc_zeta_factor = doc_lambda + 0.5 * doc_nu_square
                 assert doc_zeta_factor.shape == (self._number_of_topics, )
-                doc_zeta_factor = numpy.tile(
+                doc_zeta_factor = np.tile(
                     doc_zeta_factor, (self._number_of_topics, 1))
                 assert doc_zeta_factor.shape == (
                     self._number_of_topics, self._number_of_topics)
@@ -689,15 +689,15 @@ class VariationalBayes(Inferencer):
                 #
 
                 # update zeta in close form
-                # doc_zeta = numpy.sum(numpy.exp(doc_lambda+0.5*doc_nu_square));
+                # doc_zeta = np.sum(np.exp(doc_lambda+0.5*doc_nu_square));
                 doc_zeta_factor = doc_lambda + 0.5 * doc_nu_square
                 assert doc_zeta_factor.shape == (self._number_of_topics, )
-                doc_zeta_factor = numpy.tile(
+                doc_zeta_factor = np.tile(
                     doc_zeta_factor, (self._number_of_topics, 1))
                 assert doc_zeta_factor.shape == (
                     self._number_of_topics, self._number_of_topics)
 
-                # mean_change = numpy.mean(abs(gamma_update - lambda_values[doc_id, :]));
+                # mean_change = np.mean(abs(gamma_update - lambda_values[doc_id, :]));
                 # lambda_values[doc_id, :] = gamma_update;
                 # if mean_change <= local_parameter_converge_threshold:
                 # break;
@@ -706,46 +706,46 @@ class VariationalBayes(Inferencer):
 
             # print "process document %d..." % doc_id
 
-            # document_log_likelihood -= 0.5 * self._number_of_topics * numpy.log(2 * numpy.pi)
+            # document_log_likelihood -= 0.5 * self._number_of_topics * np.log(2 * np.pi)
             if self._diagonal_covariance_matrix:
-                document_log_likelihood -= 0.5 * numpy.sum(
-                    numpy.log(self._alpha_sigma))
-                document_log_likelihood -= 0.5 * numpy.sum(
+                document_log_likelihood -= 0.5 * np.sum(
+                    np.log(self._alpha_sigma))
+                document_log_likelihood -= 0.5 * np.sum(
                     doc_nu_square / self._alpha_sigma)
-                document_log_likelihood -= 0.5 * numpy.sum(
+                document_log_likelihood -= 0.5 * np.sum(
                     (doc_lambda - self._alpha_mu)**2 / self._alpha_sigma)
             else:
-                # document_log_likelihood -= 0.5 * numpy.log(numpy.linalg.det(self._alpha_sigma));
-                document_log_likelihood -= 0.5 * numpy.log(
+                # document_log_likelihood -= 0.5 * np.log(np.linalg.det(self._alpha_sigma));
+                document_log_likelihood -= 0.5 * np.log(
                     scipy.linalg.det(self._alpha_sigma) + 1e-30)
-                document_log_likelihood -= 0.5 * numpy.sum(
-                    doc_nu_square * numpy.diag(self._alpha_sigma_inv))
-                document_log_likelihood -= 0.5 * numpy.dot(
-                    numpy.dot(
-                        (self._alpha_mu - doc_lambda[numpy.newaxis, :]),
+                document_log_likelihood -= 0.5 * np.sum(
+                    doc_nu_square * np.diag(self._alpha_sigma_inv))
+                document_log_likelihood -= 0.5 * np.dot(
+                    np.dot(
+                        (self._alpha_mu - doc_lambda[np.newaxis, :]),
                         self._alpha_sigma_inv),
-                    (self._alpha_mu - doc_lambda[numpy.newaxis, :]).T)
+                    (self._alpha_mu - doc_lambda[np.newaxis, :]).T)
 
-            document_log_likelihood += numpy.sum(
-                numpy.sum(numpy.exp(log_phi) * term_counts, axis=1) *
+            document_log_likelihood += np.sum(
+                np.sum(np.exp(log_phi) * term_counts, axis=1) *
                 doc_lambda)
-            # use the fact that doc_zeta = numpy.sum(numpy.exp(doc_lambda+0.5*doc_nu_square)), to cancel the factors
+            # use the fact that doc_zeta = np.sum(np.exp(doc_lambda+0.5*doc_nu_square)), to cancel the factors
             document_log_likelihood -= scipy.misc.logsumexp(
                 doc_lambda + 0.5 * doc_nu_square) * doc_word_count
 
             document_log_likelihood += 0.5 * self._number_of_topics
-            # document_log_likelihood += 0.5 * self._number_of_topics * numpy.log(2 * numpy.pi)
-            document_log_likelihood += 0.5 * numpy.sum(
-                numpy.log(doc_nu_square))
+            # document_log_likelihood += 0.5 * self._number_of_topics * np.log(2 * np.pi)
+            document_log_likelihood += 0.5 * np.sum(
+                np.log(doc_nu_square))
 
-            document_log_likelihood -= numpy.sum(
-                numpy.exp(log_phi) * log_phi * term_counts)
+            document_log_likelihood -= np.sum(
+                np.exp(log_phi) * log_phi * term_counts)
 
             # Note: all terms including E_q[p(\eta | \beta)], i.e., terms involving \Psi(\eta), are cancelled due to \eta updates in M-step
             if parsed_corpus != None:
                 # compute the phi terms
-                words_log_likelihood += numpy.sum(
-                    numpy.exp(log_phi + numpy.log(term_counts)) *
+                words_log_likelihood += np.sum(
+                    np.exp(log_phi + np.log(term_counts)) *
                     E_log_prob_eta[:, term_ids])
 
             lambda_values[doc_id, :] = doc_lambda
@@ -753,13 +753,13 @@ class VariationalBayes(Inferencer):
 
             assert log_phi.shape == (self._number_of_topics, len(term_ids))
             assert term_counts.shape == (1, len(term_ids))
-            phi_sufficient_statistics[:, term_ids] += numpy.exp(
-                log_phi + numpy.log(term_counts))
+            phi_sufficient_statistics[:, term_ids] += np.exp(
+                log_phi + np.log(term_counts))
 
             if (doc_id + 1) % 1000 == 0:
                 print("successfully processed %d documents..." % (doc_id + 1))
 
-        assert numpy.all(nu_square_values > 0)
+        assert np.all(nu_square_values > 0)
 
         if parsed_corpus == None:
             self._lambda = lambda_values
@@ -805,28 +805,28 @@ class VariationalBayes(Inferencer):
         assert doc_lambda.shape == (self._number_of_topics, )
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
-        function_doc_lambda = numpy.sum(sum_phi * doc_lambda)
+        function_doc_lambda = np.sum(sum_phi * doc_lambda)
 
         if self._diagonal_covariance_matrix:
             mean_adjustment = doc_lambda - self._alpha_mu
             assert mean_adjustment.shape == (self._number_of_topics, )
-            function_doc_lambda += -0.5 * numpy.sum(
+            function_doc_lambda += -0.5 * np.sum(
                 (mean_adjustment**2) / self._alpha_sigma)
         else:
-            mean_adjustment = doc_lambda[numpy.newaxis, :] - self._alpha_mu
+            mean_adjustment = doc_lambda[np.newaxis, :] - self._alpha_mu
             assert mean_adjustment.shape == (1, self._number_of_topics), (
                 doc_lambda.shape, mean_adjustment.shape, self._alpha_mu.shape)
-            function_doc_lambda += -0.5 * numpy.dot(
-                numpy.dot(mean_adjustment, self._alpha_sigma_inv),
+            function_doc_lambda += -0.5 * np.dot(
+                np.dot(mean_adjustment, self._alpha_sigma_inv),
                 mean_adjustment.T)
 
-        function_doc_lambda += -total_word_count * numpy.sum(exp_over_doc_zeta)
+        function_doc_lambda += -total_word_count * np.sum(exp_over_doc_zeta)
 
-        return numpy.asscalar(-function_doc_lambda)
+        return np.asscalar(-function_doc_lambda)
 
     def f_prime_doc_lambda(self, doc_lambda, *args):
         (doc_nu_square, doc_zeta_factor, sum_phi, total_word_count) = args
@@ -836,17 +836,17 @@ class VariationalBayes(Inferencer):
         assert sum_phi.shape == (self._number_of_topics, )
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
         assert exp_over_doc_zeta.shape == (self._number_of_topics, )
 
         if self._diagonal_covariance_matrix:
             function_prime_doc_lambda = (
                 self._alpha_mu - doc_lambda) / self._alpha_sigma
         else:
-            function_prime_doc_lambda = numpy.dot(
-                (self._alpha_mu - doc_lambda[numpy.newaxis, :]),
+            function_prime_doc_lambda = np.dot(
+                (self._alpha_mu - doc_lambda[np.newaxis, :]),
                 self._alpha_sigma_inv)[0, :]
 
         function_prime_doc_lambda += sum_phi
@@ -854,14 +854,14 @@ class VariationalBayes(Inferencer):
 
         assert function_prime_doc_lambda.shape == (self._number_of_topics, )
 
-        return numpy.asarray(-function_prime_doc_lambda)
+        return np.asarray(-function_prime_doc_lambda)
 
     def f_hessian_doc_lambda(self, doc_lambda, *args):
         (doc_nu_square, doc_zeta_factor, sum_phi, total_word_count) = args
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
             function_hessian_doc_lambda = -1.0 / self._alpha_sigma
@@ -870,12 +870,12 @@ class VariationalBayes(Inferencer):
             function_hessian_doc_lambda = -self._alpha_sigma_inv
             assert function_hessian_doc_lambda.shape == (
                 self._number_of_topics, self._number_of_topics)
-            function_hessian_doc_lambda -= total_word_count * numpy.diag(
+            function_hessian_doc_lambda -= total_word_count * np.diag(
                 exp_over_doc_zeta)
             assert function_hessian_doc_lambda.shape == (
                 self._number_of_topics, self._number_of_topics)
 
-        return numpy.asarray(-function_hessian_doc_lambda)
+        return np.asarray(-function_hessian_doc_lambda)
 
     def f_hessian_direction_doc_lambda(
             self, doc_lambda, direction_vector, *args):
@@ -888,26 +888,26 @@ class VariationalBayes(Inferencer):
         assert direction_vector.shape == (self._number_of_topics, )
 
         log_exp_over_doc_zeta_a = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            direction_vector[:, numpy.newaxis] *
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            direction_vector[:, np.newaxis] *
             self._hessian_direction_approximation_epsilon -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
         log_exp_over_doc_zeta_b = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
         assert log_exp_over_doc_zeta_a.shape == (self._number_of_topics, )
         assert log_exp_over_doc_zeta_b.shape == (self._number_of_topics, )
 
-        # function_hessian_direction_doc_lambda = total_word_count * numpy.exp(numpy.log(1 - numpy.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a)) - log_exp_over_doc_zeta_b)
-        function_hessian_direction_doc_lambda = total_word_count * numpy.exp(
+        # function_hessian_direction_doc_lambda = total_word_count * np.exp(np.log(1 - np.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a)) - log_exp_over_doc_zeta_b)
+        function_hessian_direction_doc_lambda = total_word_count * np.exp(
             -log_exp_over_doc_zeta_b
-        ) * (1 - numpy.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a))
+        ) * (1 - np.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a))
 
         if self._diagonal_covariance_matrix:
             function_hessian_direction_doc_lambda += -direction_vector * self._hessian_direction_approximation_epsilon / self._alpha_sigma
         else:
-            function_hessian_direction_doc_lambda += -numpy.dot(
-                direction_vector[numpy.newaxis, :] *
+            function_hessian_direction_doc_lambda += -np.dot(
+                direction_vector[np.newaxis, :] *
                 self._hessian_direction_approximation_epsilon,
                 self._alpha_sigma_inv)[0, :]
         assert function_hessian_direction_doc_lambda.shape == (
@@ -915,7 +915,7 @@ class VariationalBayes(Inferencer):
 
         function_hessian_direction_doc_lambda /= self._hessian_direction_approximation_epsilon
 
-        return numpy.asarray(-function_hessian_direction_doc_lambda)
+        return np.asarray(-function_hessian_direction_doc_lambda)
 
     #
     #
@@ -951,23 +951,23 @@ class VariationalBayes(Inferencer):
             self._number_of_topics, self._number_of_topics)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
-        function_doc_nu_square = 0.5 * numpy.sum(numpy.log(doc_nu_square))
+        function_doc_nu_square = 0.5 * np.sum(np.log(doc_nu_square))
 
         if self._diagonal_covariance_matrix:
-            function_doc_nu_square += -0.5 * numpy.sum(
+            function_doc_nu_square += -0.5 * np.sum(
                 doc_nu_square / self._alpha_sigma)
         else:
-            function_doc_nu_square += -0.5 * numpy.sum(
-                doc_nu_square * numpy.diag(self._alpha_sigma_inv))
+            function_doc_nu_square += -0.5 * np.sum(
+                doc_nu_square * np.diag(self._alpha_sigma_inv))
 
-        function_doc_nu_square += -total_word_count * numpy.sum(
+        function_doc_nu_square += -total_word_count * np.sum(
             exp_over_doc_zeta)
 
-        return numpy.asscalar(-function_doc_nu_square)
+        return np.asscalar(-function_doc_nu_square)
 
     def f_prime_doc_nu_square(self, doc_nu_square, *args):
         (doc_lambda, doc_zeta_factor, total_word_count) = args
@@ -976,19 +976,19 @@ class VariationalBayes(Inferencer):
             self._number_of_topics, self._number_of_topics)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
             function_prime_doc_nu_square = -0.5 / self._alpha_sigma
         else:
-            function_prime_doc_nu_square = -0.5 * numpy.diag(
+            function_prime_doc_nu_square = -0.5 * np.diag(
                 self._alpha_sigma_inv)
         function_prime_doc_nu_square += 0.5 / doc_nu_square
         function_prime_doc_nu_square -= 0.5 * total_word_count * exp_over_doc_zeta
 
-        return numpy.asarray(-function_prime_doc_nu_square)
+        return np.asarray(-function_prime_doc_nu_square)
 
     def f_hessian_doc_nu_square(self, doc_nu_square, *args):
         (doc_lambda, doc_zeta_factor, total_word_count) = args
@@ -997,20 +997,20 @@ class VariationalBayes(Inferencer):
             self._number_of_topics, self._number_of_topics)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         function_hessian_doc_nu_square = -0.5 / (doc_nu_square**2)
         function_hessian_doc_nu_square += -0.25 * total_word_count * exp_over_doc_zeta
 
-        function_hessian_doc_nu_square = numpy.diag(
+        function_hessian_doc_nu_square = np.diag(
             function_hessian_doc_nu_square)
 
         assert function_hessian_doc_nu_square.shape == (
             self._number_of_topics, self._number_of_topics)
 
-        return numpy.asarray(-function_hessian_doc_nu_square)
+        return np.asarray(-function_hessian_doc_nu_square)
 
     def f_hessian_direction_doc_nu_square(
             self, doc_nu_square, direction_vector, *args):
@@ -1024,18 +1024,18 @@ class VariationalBayes(Inferencer):
             self._number_of_topics, self._number_of_topics)
 
         log_exp_over_doc_zeta_a = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * (
-                doc_nu_square[:, numpy.newaxis] +
-                direction_vector[:, numpy.newaxis] *
+            doc_zeta_factor - doc_lambda[:, np.newaxis] - 0.5 * (
+                doc_nu_square[:, np.newaxis] +
+                direction_vector[:, np.newaxis] *
                 self._hessian_direction_approximation_epsilon), axis=1)
         log_exp_over_doc_zeta_b = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
 
-        # function_hessian_direction_doc_nu_square = total_word_count * numpy.exp(numpy.log(1 - numpy.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a)) - log_exp_over_doc_zeta_b)
-        function_hessian_direction_doc_nu_square = total_word_count * numpy.exp(
+        # function_hessian_direction_doc_nu_square = total_word_count * np.exp(np.log(1 - np.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a)) - log_exp_over_doc_zeta_b)
+        function_hessian_direction_doc_nu_square = total_word_count * np.exp(
             -log_exp_over_doc_zeta_b
-        ) * (1 - numpy.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a))
+        ) * (1 - np.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a))
 
         function_hessian_direction_doc_nu_square += 0.5 / (
             doc_nu_square +
@@ -1047,7 +1047,7 @@ class VariationalBayes(Inferencer):
         assert function_hessian_direction_doc_nu_square.shape == (
             self._number_of_topics, )
 
-        return numpy.asarray(-function_hessian_direction_doc_nu_square)
+        return np.asarray(-function_hessian_direction_doc_nu_square)
 
     #
     #
@@ -1057,7 +1057,7 @@ class VariationalBayes(Inferencer):
 
     def optimize_doc_nu_square_in_log_space(
             self, doc_nu_square, arguments, method_name=None):
-        log_doc_nu_square = numpy.log(doc_nu_square)
+        log_doc_nu_square = np.log(doc_nu_square)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             optimize_result = scipy.optimize.minimize(
@@ -1077,10 +1077,10 @@ class VariationalBayes(Inferencer):
 
         log_doc_nu_square_update = optimize_result.x
 
-        return numpy.exp(log_doc_nu_square_update)
+        return np.exp(log_doc_nu_square_update)
 
     def f_log_doc_nu_square(self, log_doc_nu_square, *args):
-        return self.f_doc_nu_square(numpy.exp(log_doc_nu_square), *args)
+        return self.f_doc_nu_square(np.exp(log_doc_nu_square), *args)
 
     def f_prime_log_doc_nu_square(self, log_doc_nu_square, *args):
         (doc_lambda, doc_zeta_factor, total_word_count) = args
@@ -1089,17 +1089,17 @@ class VariationalBayes(Inferencer):
         assert doc_zeta_factor.shape == (
             self._number_of_topics, self._number_of_topics)
 
-        exp_log_doc_nu_square = numpy.exp(log_doc_nu_square)
+        exp_log_doc_nu_square = np.exp(log_doc_nu_square)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * exp_log_doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * exp_log_doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
             function_prime_log_doc_nu_square = -0.5 * exp_log_doc_nu_square / self._alpha_sigma
         else:
-            function_prime_log_doc_nu_square = -0.5 * exp_log_doc_nu_square * numpy.diag(
+            function_prime_log_doc_nu_square = -0.5 * exp_log_doc_nu_square * np.diag(
                 self._alpha_sigma_inv)
         function_prime_log_doc_nu_square += 0.5
         function_prime_log_doc_nu_square -= 0.5 * total_word_count * exp_over_doc_zeta * exp_log_doc_nu_square
@@ -1107,7 +1107,7 @@ class VariationalBayes(Inferencer):
         assert function_prime_log_doc_nu_square.shape == (
             self._number_of_topics, )
 
-        return numpy.asarray(-function_prime_log_doc_nu_square)
+        return np.asarray(-function_prime_log_doc_nu_square)
 
     def f_hessian_log_doc_nu_square(self, log_doc_nu_square, *args):
         (doc_lambda, doc_zeta_factor, total_word_count) = args
@@ -1116,28 +1116,28 @@ class VariationalBayes(Inferencer):
         assert doc_zeta_factor.shape == (
             self._number_of_topics, self._number_of_topics)
 
-        exp_doc_log_nu_square = numpy.exp(log_doc_nu_square)
+        exp_doc_log_nu_square = np.exp(log_doc_nu_square)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * exp_doc_log_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * exp_doc_log_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
             function_hessian_log_doc_nu_square = -0.5 * exp_doc_log_nu_square / self._alpha_sigma
         else:
-            function_hessian_log_doc_nu_square = -0.5 * exp_doc_log_nu_square * numpy.diag(
+            function_hessian_log_doc_nu_square = -0.5 * exp_doc_log_nu_square * np.diag(
                 self._alpha_sigma_inv)
         function_hessian_log_doc_nu_square -= 0.5 * total_word_count * exp_over_doc_zeta * exp_doc_log_nu_square * (
             1 + 0.5 * exp_doc_log_nu_square)
 
-        function_hessian_log_doc_nu_square = numpy.diag(
+        function_hessian_log_doc_nu_square = np.diag(
             function_hessian_log_doc_nu_square)
 
         assert function_hessian_log_doc_nu_square.shape == (
             self._number_of_topics, self._number_of_topics)
 
-        return numpy.asarray(-function_hessian_log_doc_nu_square)
+        return np.asarray(-function_hessian_log_doc_nu_square)
 
     def f_hessian_direction_log_doc_nu_square(
             self, log_doc_nu_square, direction_vector, *args):
@@ -1150,26 +1150,26 @@ class VariationalBayes(Inferencer):
         assert doc_zeta_factor.shape == (
             self._number_of_topics, self._number_of_topics)
 
-        exp_log_doc_nu_square = numpy.exp(log_doc_nu_square)
-        exp_log_doc_nu_square_epsilon_direction = numpy.exp(
+        exp_log_doc_nu_square = np.exp(log_doc_nu_square)
+        exp_log_doc_nu_square_epsilon_direction = np.exp(
             log_doc_nu_square +
             direction_vector * self._hessian_direction_approximation_epsilon)
 
         log_exp_over_doc_zeta_epsilon_direction = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * exp_log_doc_nu_square_epsilon_direction[:, numpy.newaxis],
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * exp_log_doc_nu_square_epsilon_direction[:, np.newaxis],
             axis=1)
         log_exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * exp_log_doc_nu_square[:, numpy.newaxis], axis=1)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * exp_log_doc_nu_square[:, np.newaxis], axis=1)
 
-        # function_hessian_direction_log_doc_nu_square = 0.5 * total_word_count * numpy.exp(log_doc_nu_square - log_exp_over_doc_zeta)
-        # function_hessian_direction_log_doc_nu_square += - 0.5 * total_word_count * numpy.exp(log_doc_nu_square + direction_vector * epsilon - log_exp_over_doc_zeta_epsilon_direction)
+        # function_hessian_direction_log_doc_nu_square = 0.5 * total_word_count * np.exp(log_doc_nu_square - log_exp_over_doc_zeta)
+        # function_hessian_direction_log_doc_nu_square += - 0.5 * total_word_count * np.exp(log_doc_nu_square + direction_vector * epsilon - log_exp_over_doc_zeta_epsilon_direction)
 
-        function_hessian_direction_log_doc_nu_square = 1 - numpy.exp(
+        function_hessian_direction_log_doc_nu_square = 1 - np.exp(
             direction_vector * self._hessian_direction_approximation_epsilon -
             log_exp_over_doc_zeta_epsilon_direction + log_exp_over_doc_zeta)
-        function_hessian_direction_log_doc_nu_square *= 0.5 * total_word_count * numpy.exp(
+        function_hessian_direction_log_doc_nu_square *= 0.5 * total_word_count * np.exp(
             log_doc_nu_square - log_exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
@@ -1179,7 +1179,7 @@ class VariationalBayes(Inferencer):
         else:
             function_hessian_direction_log_doc_nu_square += 0.5 * (
                 exp_log_doc_nu_square -
-                exp_log_doc_nu_square_epsilon_direction) * numpy.diag(
+                exp_log_doc_nu_square_epsilon_direction) * np.diag(
                     self._alpha_sigma_inv)
 
         function_hessian_direction_log_doc_nu_square /= self._hessian_direction_approximation_epsilon
@@ -1187,7 +1187,7 @@ class VariationalBayes(Inferencer):
         assert function_hessian_direction_log_doc_nu_square.shape == (
             self._number_of_topics, )
 
-        return numpy.asarray(-function_hessian_direction_log_doc_nu_square)
+        return np.asarray(-function_hessian_direction_log_doc_nu_square)
 
     #
     #
@@ -1200,12 +1200,12 @@ class VariationalBayes(Inferencer):
 
         # compute the beta terms
         topic_log_likelihood = self._number_of_topics * (
-            scipy.special.gammaln(numpy.sum(self._alpha_beta)) -
-            numpy.sum(scipy.special.gammaln(self._alpha_beta)))
+            scipy.special.gammaln(np.sum(self._alpha_beta)) -
+            np.sum(scipy.special.gammaln(self._alpha_beta)))
         # compute the eta terms
-        topic_log_likelihood += numpy.sum(
-            numpy.sum(scipy.special.gammaln(self._eta), axis=1) -
-            scipy.special.gammaln(numpy.sum(self._eta, axis=1)))
+        topic_log_likelihood += np.sum(
+            np.sum(scipy.special.gammaln(self._eta), axis=1) -
+            scipy.special.gammaln(np.sum(self._eta, axis=1)))
 
         self._eta = phi_sufficient_statistics + self._alpha_beta
         assert (
@@ -1268,34 +1268,28 @@ class VariationalBayes(Inferencer):
     def optimize_hyperparameter(self):
         assert self._lambda.shape == (
             self._number_of_documents, self._number_of_topics)
-        self._alpha_mu = numpy.mean(self._lambda, axis=0)
+        self._alpha_mu = np.mean(self._lambda, axis=0)
         # print("update hyper-parameter mu to %s" % self._alpha_mu)
 
         assert self._nu_square.shape == (
             self._number_of_documents, self._number_of_topics)
         if self._diagonal_covariance_matrix:
-            self._alpha_sigma = numpy.mean(
+            self._alpha_sigma = np.mean(
                 self._nu_square +
-                (self._lambda - self._alpha_mu[numpy.newaxis, :])**2, axis=0)
-            # print("update hyper-parameter sigma to %s" % self._alpha_sigma)
+                (self._lambda - self._alpha_mu[np.newaxis, :])**2, axis=0)
         else:
-            self._alpha_mu = self._alpha_mu[numpy.newaxis, :]
-
-            assert self._lambda.shape == (
-                self._number_of_documents, self._number_of_topics)
-            self._alpha_sigma = numpy.copy(
-                numpy.diag(numpy.mean(self._nu_square, axis=0)))
+            self._alpha_mu = self._alpha_mu[np.newaxis, :]
             adjusted_lambda = self._lambda - self._alpha_mu
             assert adjusted_lambda.shape == (
                 self._number_of_documents, self._number_of_topics)
-            self._alpha_sigma += numpy.dot(
+            self._alpha_sigma = np.diag(np.mean(self._nu_square, axis=0))
+            self._alpha_sigma += np.dot(
                 adjusted_lambda.T, adjusted_lambda) / self._number_of_documents
 
             # self._alpha_sigma_inv = scipy.linalg.pinv(self._alpha_sigma);
             self._alpha_sigma_inv = scipy.linalg.inv(self._alpha_sigma)
-            # print("update hyper-parameter sigma to")
-            # print("%s" % self._alpha_sigma)
 
+        # print("update hyper-parameter sigma to %s" % self._alpha_sigma)
         return
 
     """
@@ -1306,26 +1300,23 @@ class VariationalBayes(Inferencer):
     def optimize_hyperparameter_old(self):
         assert self._lambda.shape == (
             self._number_of_documents, self._number_of_topics)
-        self._alpha_mu = numpy.mean(self._lambda, axis=0)
+        self._alpha_mu = np.mean(self._lambda, axis=0)
         print("update hyper-parameter mu to %s" % self._alpha_mu)
 
         assert self._nu_square.shape == (
             self._number_of_documents, self._number_of_topics)
         if self._diagonal_covariance_matrix:
-            self._alpha_sigma = numpy.mean(
+            self._alpha_sigma = np.mean(
                 self._nu_square +
-                (self._lambda - self._alpha_mu[numpy.newaxis, :])**2, axis=0)
-            print("update hyper-parameter sigma to %s" % self._alpha_sigma)
+                (self._lambda - self._alpha_mu[np.newaxis, :])**2, axis=0)
         else:
-            self._alpha_mu = self._alpha_mu[numpy.newaxis, :]
+            self._alpha_mu = self._alpha_mu[np.newaxis, :]
 
             self._alpha_sigma = sklearn.covariance.empirical_covariance(
                 self._lambda, assume_centered=True)
 
             # self._alpha_sigma_inv = scipy.linalg.pinv(self._alpha_sigma);
             self._alpha_sigma_inv = scipy.linalg.inv(self._alpha_sigma)
-            print("update hyper-parameter sigma to")
-            print("%s" % self._alpha_sigma)
 
         return
 
@@ -1335,12 +1326,12 @@ class VariationalBayes(Inferencer):
         for topic_index in range(self._number_of_topics):
             output.write("==========\t%d\t==========\n" % (topic_index))
 
-            beta_probability = numpy.exp(
+            beta_probability = np.exp(
                 E_log_eta[topic_index, :] -
                 scipy.misc.logsumexp(E_log_eta[topic_index, :]))
 
             i = 0
-            for type_index in reversed(numpy.argsort(beta_probability)):
+            for type_index in reversed(np.argsort(beta_probability)):
                 i += 1
                 output.write(
                     "%s\t%g\n" % (
@@ -1375,9 +1366,9 @@ class VariationalBayes(Inferencer):
         newton_method_power_index = 0
         for newton_method_iteration_index in range(newton_method_iteration):
             exp_over_doc_zeta = scipy.misc.logsumexp(
-                doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-                0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-            exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+                doc_zeta_factor - doc_lambda[:, np.newaxis] -
+                0.5 * doc_nu_square[:, np.newaxis], axis=1)
+            exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
             assert exp_over_doc_zeta.shape == (self._number_of_topics, )
 
             if self._diagonal_covariance_matrix:
@@ -1386,14 +1377,14 @@ class VariationalBayes(Inferencer):
                 first_derivative_lambda += sum_phi
                 first_derivative_lambda -= total_word_count * exp_over_doc_zeta
             else:
-                first_derivative_lambda = numpy.dot(
-                    (self._alpha_mu - doc_lambda[numpy.newaxis, :]),
+                first_derivative_lambda = np.dot(
+                    (self._alpha_mu - doc_lambda[np.newaxis, :]),
                     self._alpha_sigma_inv)
                 assert first_derivative_lambda.shape == (
                     1, self._number_of_topics)
-                first_derivative_lambda += sum_phi[numpy.newaxis, :]
+                first_derivative_lambda += sum_phi[np.newaxis, :]
                 first_derivative_lambda -= total_word_count * exp_over_doc_zeta[
-                    numpy.newaxis, :]
+                    np.newaxis, :]
                 assert first_derivative_lambda.shape == (
                     1, self._number_of_topics)
 
@@ -1404,13 +1395,13 @@ class VariationalBayes(Inferencer):
                 second_derivative_lambda = -self._alpha_sigma_inv
                 assert second_derivative_lambda.shape == (
                     self._number_of_topics, self._number_of_topics)
-                second_derivative_lambda -= total_word_count * numpy.diag(
+                second_derivative_lambda -= total_word_count * np.diag(
                     exp_over_doc_zeta)
                 assert second_derivative_lambda.shape == (
                     self._number_of_topics, self._number_of_topics)
 
             if self._diagonal_covariance_matrix:
-                if not numpy.all(second_derivative_lambda) > 0:
+                if not np.all(second_derivative_lambda) > 0:
                     sys.stderr.write(
                         "Hessian matrix is not positive definite: %s\n" %
                         second_derivative_lambda)
@@ -1420,8 +1411,8 @@ class VariationalBayes(Inferencer):
                 '''
                 print "%s" % second_derivative_lambda;
                 E_vector, V_matrix = scipy.linalg.eigh(second_derivative_lambda);
-                while not numpy.all(E_vector>eigen_value_tolerance):
-                    second_derivative_lambda += numpy.eye(self._number_of_topics);
+                while not np.all(E_vector>eigen_value_tolerance):
+                    second_derivative_lambda += np.eye(self._number_of_topics);
                     E_vector, V_matrix = scipy.linalg.eigh(second_derivative_lambda);
                     print "%s" % E_vector
                 '''
@@ -1429,24 +1420,24 @@ class VariationalBayes(Inferencer):
             if self._diagonal_covariance_matrix:
                 step_change = first_derivative_lambda / second_derivative_lambda
             else:
-                # step_change = numpy.dot(first_derivative_lambda, numpy.linalg.pinv(second_derivative_lambda))[0, :]
-                step_change = numpy.dot(
+                # step_change = np.dot(first_derivative_lambda, np.linalg.pinv(second_derivative_lambda))[0, :]
+                step_change = np.dot(
                     first_derivative_lambda,
                     scipy.linalg.pinv(second_derivative_lambda))[0, :]
 
             # step_change *= newton_method_step_size;
-            step_change /= numpy.sqrt(numpy.sum(step_change**2))
+            step_change /= np.sqrt(np.sum(step_change**2))
 
-            # if numpy.any(numpy.isnan(step_change)) or numpy.any(numpy.isinf(step_change)):
+            # if np.any(np.isnan(step_change)) or np.any(np.isinf(step_change)):
             # break;
 
-            step_alpha = numpy.power(
+            step_alpha = np.power(
                 newton_method_decay_factor, newton_method_power_index)
 
             doc_lambda -= step_alpha * step_change
             assert doc_lambda.shape == (self._number_of_topics, )
 
-            # if numpy.all(numpy.abs(step_change) <= local_parameter_converge_threshold):
+            # if np.all(np.abs(step_change) <= local_parameter_converge_threshold):
             # break;
 
             # print "update lambda to %s" % (doc_lambda)
@@ -1468,31 +1459,31 @@ class VariationalBayes(Inferencer):
 
         newton_method_power_index = 0
         for newton_method_iteration_index in range(newton_method_iteration):
-            # print doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * doc_nu_square[:, numpy.newaxis]
-            # exp_over_doc_zeta = 1.0 / numpy.sum(numpy.exp(doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * doc_nu_square[:, numpy.newaxis]), axis=1);
-            # print scipy.misc.logsumexp(doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-            # exp_over_doc_zeta = numpy.exp(-scipy.misc.logsumexp(doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * doc_nu_square[:, numpy.newaxis], axis=1));
+            # print doc_zeta_factor - doc_lambda[:, np.newaxis] - 0.5 * doc_nu_square[:, np.newaxis]
+            # exp_over_doc_zeta = 1.0 / np.sum(np.exp(doc_zeta_factor - doc_lambda[:, np.newaxis] - 0.5 * doc_nu_square[:, np.newaxis]), axis=1);
+            # print scipy.misc.logsumexp(doc_zeta_factor - doc_lambda[:, np.newaxis] - 0.5 * doc_nu_square[:, np.newaxis], axis=1)
+            # exp_over_doc_zeta = np.exp(-scipy.misc.logsumexp(doc_zeta_factor - doc_lambda[:, np.newaxis] - 0.5 * doc_nu_square[:, np.newaxis], axis=1));
             exp_over_doc_zeta = scipy.misc.logsumexp(
-                doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-                0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-            # exp_over_doc_zeta = numpy.clip(exp_over_doc_zeta, -10, +10);
-            exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+                doc_zeta_factor - doc_lambda[:, np.newaxis] -
+                0.5 * doc_nu_square[:, np.newaxis], axis=1)
+            # exp_over_doc_zeta = np.clip(exp_over_doc_zeta, -10, +10);
+            exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
             if self._diagonal_covariance_matrix:
                 first_derivative_nu_square = -0.5 / self._alpha_sigma
             else:
-                first_derivative_nu_square = -0.5 * numpy.diag(
+                first_derivative_nu_square = -0.5 * np.diag(
                     self._alpha_sigma_inv)
             first_derivative_nu_square += 0.5 / doc_nu_square
-            # first_derivative_nu_square -= 0.5 * (total_word_count / doc_zeta) * numpy.exp(doc_lambda+0.5*doc_nu_square)
+            # first_derivative_nu_square -= 0.5 * (total_word_count / doc_zeta) * np.exp(doc_lambda+0.5*doc_nu_square)
             first_derivative_nu_square -= 0.5 * total_word_count * exp_over_doc_zeta
 
             second_derivative_nu_square = -0.5 / (doc_nu_square**2)
-            # second_derivative_nu_square += -0.25 * (total_word_count / doc_zeta) * numpy.exp(doc_lambda+0.5*doc_nu_square);
+            # second_derivative_nu_square += -0.25 * (total_word_count / doc_zeta) * np.exp(doc_lambda+0.5*doc_nu_square);
             second_derivative_nu_square += -0.25 * total_word_count * exp_over_doc_zeta
 
             if self._diagonal_covariance_matrix:
-                if not numpy.all(second_derivative_nu_square) > 0:
+                if not np.all(second_derivative_nu_square) > 0:
                     print(
                         "Hessian matrix is not positive definite: ",
                         second_derivative_nu_square)
@@ -1502,8 +1493,8 @@ class VariationalBayes(Inferencer):
                 '''
                 print "%s" % second_derivative_nu_square;
                 E_vector, V_matrix = scipy.linalg.eigh(second_derivative_nu_square);
-                while not numpy.all(E_vector>eigen_value_tolerance):
-                    second_derivative_nu_square += numpy.eye(self._number_of_topics);
+                while not np.all(E_vector>eigen_value_tolerance):
+                    second_derivative_nu_square += np.eye(self._number_of_topics);
                     E_vector, V_matrix = scipy.linalg.eigh(second_derivative_nu_square);
                     print "%s" % E_vector
                 '''
@@ -1511,18 +1502,18 @@ class VariationalBayes(Inferencer):
             step_change = first_derivative_nu_square / second_derivative_nu_square
 
             # step_change *= newton_method_step_size;
-            step_change /= numpy.sqrt(numpy.sum(step_change**2))
+            step_change /= np.sqrt(np.sum(step_change**2))
 
-            step_alpha = numpy.power(
+            step_alpha = np.power(
                 newton_method_decay_factor, newton_method_power_index)
-            while numpy.any(doc_nu_square <= step_alpha * step_change):
+            while np.any(doc_nu_square <= step_alpha * step_change):
                 newton_method_power_index += 1
-                step_alpha = numpy.power(
+                step_alpha = np.power(
                     newton_method_decay_factor, newton_method_power_index)
 
             doc_nu_square -= step_alpha * step_change
 
-            assert numpy.all(doc_nu_square > 0), (
+            assert np.all(doc_nu_square > 0), (
                 doc_nu_square, step_change, first_derivative_nu_square,
                 second_derivative_nu_square)
 
@@ -1535,22 +1526,22 @@ class VariationalBayes(Inferencer):
         assert doc_zeta_factor.shape == (
             self._number_of_topics, self._number_of_topics)
 
-        doc_log_nu_square = numpy.log(doc_nu_square)
-        exp_doc_log_nu_square = numpy.exp(doc_log_nu_square)
+        doc_log_nu_square = np.log(doc_nu_square)
+        exp_doc_log_nu_square = np.exp(doc_log_nu_square)
 
         newton_method_power_index = 0
         for newton_method_iteration_index in range(newton_method_iteration):
             log_exp_over_doc_zeta_combine = scipy.misc.logsumexp(
-                doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-                0.5 * exp_doc_log_nu_square[:, numpy.newaxis] -
-                doc_log_nu_square[:, numpy.newaxis], axis=1)
-            exp_over_doc_zeta_combine = numpy.exp(
+                doc_zeta_factor - doc_lambda[:, np.newaxis] -
+                0.5 * exp_doc_log_nu_square[:, np.newaxis] -
+                doc_log_nu_square[:, np.newaxis], axis=1)
+            exp_over_doc_zeta_combine = np.exp(
                 -log_exp_over_doc_zeta_combine)
 
             if self._diagonal_covariance_matrix:
                 first_derivative_log_nu_square = -0.5 / self._alpha_sigma * exp_doc_log_nu_square
             else:
-                first_derivative_log_nu_square = -0.5 * numpy.diag(
+                first_derivative_log_nu_square = -0.5 * np.diag(
                     self._alpha_sigma_inv) * exp_doc_log_nu_square
             first_derivative_log_nu_square += 0.5
             first_derivative_log_nu_square += -0.5 * total_word_count * exp_over_doc_zeta_combine
@@ -1558,7 +1549,7 @@ class VariationalBayes(Inferencer):
             if self._diagonal_covariance_matrix:
                 second_derivative_log_nu_square = -0.5 / self._alpha_sigma * exp_doc_log_nu_square
             else:
-                second_derivative_log_nu_square = -0.5 * numpy.diag(
+                second_derivative_log_nu_square = -0.5 * np.diag(
                     self._alpha_sigma_inv) * exp_doc_log_nu_square
             second_derivative_log_nu_square += -0.5 * total_word_count * exp_over_doc_zeta_combine * (
                 1 + 0.5 * exp_doc_log_nu_square)
@@ -1566,23 +1557,23 @@ class VariationalBayes(Inferencer):
             step_change = first_derivative_log_nu_square / second_derivative_log_nu_square
 
             # step_change *= newton_method_step_size;
-            step_change /= numpy.sqrt(numpy.sum(step_change**2))
+            step_change /= np.sqrt(np.sum(step_change**2))
 
-            # if numpy.any(numpy.isnan(step_change)) or numpy.any(numpy.isinf(step_change)):
+            # if np.any(np.isnan(step_change)) or np.any(np.isinf(step_change)):
             # break;
 
-            step_alpha = numpy.power(
+            step_alpha = np.power(
                 newton_method_decay_factor, newton_method_power_index)
 
             doc_log_nu_square -= step_alpha * step_change
-            exp_doc_log_nu_square = numpy.exp(doc_log_nu_square)
+            exp_doc_log_nu_square = np.exp(doc_log_nu_square)
 
-            # if numpy.all(numpy.abs(step_change) <= local_parameter_converge_threshold):
+            # if np.all(np.abs(step_change) <= local_parameter_converge_threshold):
             # break;
 
             # print "update nu to %s" % (doc_nu_square)
 
-        doc_nu_square = numpy.exp(doc_log_nu_square)
+        doc_nu_square = np.exp(doc_log_nu_square)
 
         return doc_nu_square
 
@@ -1601,9 +1592,9 @@ class VariationalBayes(Inferencer):
                 doc_lambda, doc_nu_square, doc_zeta_factor, sum_phi,
                 total_word_count, self._number_of_topics)
 
-            # delta_doc_lambda /= numpy.sqrt(numpy.sum(delta_doc_lambda**2));
+            # delta_doc_lambda /= np.sqrt(np.sum(delta_doc_lambda**2));
 
-            # print "check point 2", numpy.sum(delta_doc_lambda)
+            # print "check point 2", np.sum(delta_doc_lambda)
             # print delta_doc_lambda
 
             doc_lambda += delta_doc_lambda
@@ -1615,17 +1606,17 @@ class VariationalBayes(Inferencer):
             total_word_count, conjugate_gradient_iteration=100,
             conjugate_gradient_threshold=1e-9,
             precondition_hessian_matrix=True):
-        # delta_doc_lambda = numpy.random.random(self._number_of_topics);
-        delta_doc_lambda = numpy.zeros(self._number_of_topics)
-        # delta_doc_lambda = numpy.ones(self._number_of_topics);
+        # delta_doc_lambda = np.random.random(self._number_of_topics);
+        delta_doc_lambda = np.zeros(self._number_of_topics)
+        # delta_doc_lambda = np.ones(self._number_of_topics);
 
         if precondition_hessian_matrix:
             hessian_lambda = self.second_derivative_lambda(
                 doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count)
-            if not numpy.all(numpy.isfinite(hessian_lambda)):
-                return numpy.zeros(self._number_of_topics)
-            M_inverse = 1.0 / numpy.diag(hessian_lambda)
-        # print numpy.linalg.cond(hessian_lambda), ">>>", numpy.linalg.cond(numpy.dot(numpy.diag(1.0/numpy.diag(hessian_lambda)), hessian_lambda)), ">>>", numpy.linalg.cond(numpy.dot(numpy.linalg.cholesky(hessian_lambda), hessian_lambda));
+            if not np.all(np.isfinite(hessian_lambda)):
+                return np.zeros(self._number_of_topics)
+            M_inverse = 1.0 / np.diag(hessian_lambda)
+        # print np.linalg.cond(hessian_lambda), ">>>", np.linalg.cond(np.dot(np.diag(1.0/np.diag(hessian_lambda)), hessian_lambda)), ">>>", np.linalg.cond(np.dot(np.linalg.cholesky(hessian_lambda), hessian_lambda));
 
         r_vector = -self.first_derivative_lambda(
             doc_lambda, doc_nu_square, doc_zeta_factor, sum_phi,
@@ -1637,10 +1628,10 @@ class VariationalBayes(Inferencer):
         if precondition_hessian_matrix:
             z_vector = M_inverse * r_vector
         else:
-            z_vector = numpy.copy(r_vector)
+            z_vector = np.copy(r_vector)
 
-        p_vector = numpy.copy(z_vector)
-        r_z_vector_square_old = numpy.sum(r_vector * z_vector)
+        p_vector = np.copy(z_vector)
+        r_z_vector_square_old = np.sum(r_vector * z_vector)
 
         for conjugate_gradient_iteration_index in range(
                 conjugate_gradient_iteration):
@@ -1649,23 +1640,23 @@ class VariationalBayes(Inferencer):
                 doc_lambda, doc_nu_square, doc_zeta_factor, sum_phi,
                 total_word_count, p_vector)
 
-            alpha_value = r_z_vector_square_old / numpy.sum(
+            alpha_value = r_z_vector_square_old / np.sum(
                 p_vector * hessian_p_vector)
 
             delta_doc_lambda += alpha_value * p_vector
 
             r_vector -= alpha_value * hessian_p_vector
 
-            if numpy.sqrt(numpy.sum(r_vector**
+            if np.sqrt(np.sum(r_vector**
                                     2)) <= conjugate_gradient_threshold:
                 break
 
             if precondition_hessian_matrix:
                 z_vector = M_inverse * r_vector
             else:
-                z_vector = numpy.copy(r_vector)
+                z_vector = np.copy(r_vector)
 
-            r_z_vector_square_new = numpy.sum(r_vector * z_vector)
+            r_z_vector_square_new = np.sum(r_vector * z_vector)
 
             p_vector *= r_z_vector_square_new / r_z_vector_square_old
 
@@ -1683,25 +1674,25 @@ class VariationalBayes(Inferencer):
         assert sum_phi.shape == (self._number_of_topics, )
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
-        function_lambda = numpy.sum(sum_phi * doc_lambda)
+        function_lambda = np.sum(sum_phi * doc_lambda)
 
         if self._diagonal_covariance_matrix:
             mean_adjustment = doc_lambda - self._alpha_mu
             assert mean_adjustment.shape == (self._number_of_topics, )
-            function_lambda += -0.5 * numpy.sum(
+            function_lambda += -0.5 * np.sum(
                 (mean_adjustment**2) / self._alpha_sigma)
         else:
-            mean_adjustment = doc_lambda[numpy.newaxis, :] - self._alpha_mu
+            mean_adjustment = doc_lambda[np.newaxis, :] - self._alpha_mu
             assert mean_adjustment.shape == (1, self._number_of_topics)
-            function_lambda += -0.5 * numpy.dot(
-                numpy.dot(mean_adjustment, self._alpha_sigma_inv),
+            function_lambda += -0.5 * np.dot(
+                np.dot(mean_adjustment, self._alpha_sigma_inv),
                 mean_adjustment.T)
 
-        function_lambda += -total_word_count * numpy.sum(exp_over_doc_zeta)
+        function_lambda += -total_word_count * np.sum(exp_over_doc_zeta)
 
         return function_lambda
 
@@ -1713,17 +1704,17 @@ class VariationalBayes(Inferencer):
         assert sum_phi.shape == (self._number_of_topics, )
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
         assert exp_over_doc_zeta.shape == (self._number_of_topics, )
 
         if self._diagonal_covariance_matrix:
             first_derivative_lambda = (
                 self._alpha_mu - doc_lambda) / self._alpha_sigma
         else:
-            first_derivative_lambda = numpy.dot(
-                (self._alpha_mu - doc_lambda[numpy.newaxis, :]),
+            first_derivative_lambda = np.dot(
+                (self._alpha_mu - doc_lambda[np.newaxis, :]),
                 self._alpha_sigma_inv)[0, :]
 
         first_derivative_lambda += sum_phi
@@ -1736,9 +1727,9 @@ class VariationalBayes(Inferencer):
             self, doc_lambda, doc_nu_square, doc_zeta_factor,
             total_word_count):
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
             second_derivative_lambda = -1.0 / self._alpha_sigma
@@ -1747,7 +1738,7 @@ class VariationalBayes(Inferencer):
             second_derivative_lambda = -self._alpha_sigma_inv
             assert second_derivative_lambda.shape == (
                 self._number_of_topics, self._number_of_topics)
-            second_derivative_lambda -= total_word_count * numpy.diag(
+            second_derivative_lambda -= total_word_count * np.diag(
                 exp_over_doc_zeta)
             assert second_derivative_lambda.shape == (
                 self._number_of_topics, self._number_of_topics)
@@ -1764,25 +1755,25 @@ class VariationalBayes(Inferencer):
         assert direction_vector.shape == (self._number_of_topics, )
 
         log_exp_over_doc_zeta_a = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            direction_vector[:, numpy.newaxis] * epsilon -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            direction_vector[:, np.newaxis] * epsilon -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
         log_exp_over_doc_zeta_b = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
         assert log_exp_over_doc_zeta_a.shape == (self._number_of_topics, )
         assert log_exp_over_doc_zeta_b.shape == (self._number_of_topics, )
 
-        # hessian_direction_lambda = total_word_count * numpy.exp(numpy.log(1 - numpy.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a)) - log_exp_over_doc_zeta_b)
-        hessian_direction_lambda = total_word_count * numpy.exp(
+        # hessian_direction_lambda = total_word_count * np.exp(np.log(1 - np.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a)) - log_exp_over_doc_zeta_b)
+        hessian_direction_lambda = total_word_count * np.exp(
             -log_exp_over_doc_zeta_b
-        ) * (1 - numpy.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a))
+        ) * (1 - np.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a))
 
         if self._diagonal_covariance_matrix:
             hessian_direction_lambda = -direction_vector * epsilon / self._alpha_sigma
         else:
-            hessian_direction_lambda += -numpy.dot(
-                direction_vector[numpy.newaxis, :] * epsilon,
+            hessian_direction_lambda += -np.dot(
+                direction_vector[np.newaxis, :] * epsilon,
                 self._alpha_sigma_inv)[0, :]
         assert hessian_direction_lambda.shape == (self._number_of_topics, )
 
@@ -1820,7 +1811,7 @@ class VariationalBayes(Inferencer):
             assert damping_factor_denominator.shape == (
                 self._number_of_topics, )
             damping_factor_denominator *= direction_vector
-            damping_factor_denominator = numpy.sum(damping_factor_denominator)
+            damping_factor_denominator = np.sum(damping_factor_denominator)
 
             damping_factor_rho = damping_factor_numerator / damping_factor_denominator
             if damping_factor_rho < 0.25:
@@ -1847,15 +1838,15 @@ class VariationalBayes(Inferencer):
                 doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count,
                 self._number_of_topics)
 
-            # delta_doc_nu_square /= numpy.sqrt(numpy.sum(delta_doc_nu_square**2));
+            # delta_doc_nu_square /= np.sqrt(np.sum(delta_doc_nu_square**2));
 
             conjugate_gradient_power_index = 0
-            step_alpha = numpy.power(
+            step_alpha = np.power(
                 hessian_free_decay_factor, conjugate_gradient_power_index)
-            while numpy.any(
+            while np.any(
                     doc_nu_square + step_alpha * delta_doc_nu_square <= 0):
                 conjugate_gradient_power_index += 1
-                step_alpha = numpy.power(
+                step_alpha = np.power(
                     hessian_free_decay_factor, conjugate_gradient_power_index)
                 if conjugate_gradient_power_index >= hessian_free_reset_interval:
                     print("power index larger than 100", delta_doc_nu_square)
@@ -1863,7 +1854,7 @@ class VariationalBayes(Inferencer):
                     break
 
             doc_nu_square += step_alpha * delta_doc_nu_square
-            assert numpy.all(doc_nu_square > 0)
+            assert np.all(doc_nu_square > 0)
 
         return doc_nu_square
 
@@ -1873,10 +1864,10 @@ class VariationalBayes(Inferencer):
             conjugate_gradient_threshold=1e-6,
             conjugate_gradient_decay_factor=0.9,
             conjugate_gradient_reset_interval=100):
-        doc_nu_square_copy = numpy.copy(doc_nu_square)
-        # delta_doc_nu_square = numpy.ones(self._number_of_topics);
-        delta_doc_nu_square = numpy.zeros(self._number_of_topics)
-        # delta_doc_nu_square = numpy.random.random(self._number_of_topics);
+        doc_nu_square_copy = np.copy(doc_nu_square)
+        # delta_doc_nu_square = np.ones(self._number_of_topics);
+        delta_doc_nu_square = np.zeros(self._number_of_topics)
+        # delta_doc_nu_square = np.random.random(self._number_of_topics);
 
         r_vector = -self.first_derivative_nu_square(
             doc_lambda, doc_nu_square_copy, doc_zeta_factor, total_word_count)
@@ -1885,46 +1876,46 @@ class VariationalBayes(Inferencer):
             doc_lambda, doc_nu_square_copy, doc_zeta_factor, total_word_count,
             delta_doc_nu_square)
 
-        p_vector = numpy.copy(r_vector)
+        p_vector = np.copy(r_vector)
 
-        r_vector_square_old = numpy.sum(r_vector**2)
+        r_vector_square_old = np.sum(r_vector**2)
 
         for conjugate_gradient_iteration_index in range(
                 conjugate_gradient_iteration):
-            assert not numpy.any(numpy.isnan(doc_lambda))
-            assert not numpy.any(numpy.isnan(doc_nu_square_copy))
-            assert not numpy.any(numpy.isnan(doc_zeta_factor))
-            assert not numpy.any(numpy.isnan(p_vector))
+            assert not np.any(np.isnan(doc_lambda))
+            assert not np.any(np.isnan(doc_nu_square_copy))
+            assert not np.any(np.isnan(doc_zeta_factor))
+            assert not np.any(np.isnan(p_vector))
 
             # hessian_p_vector = self.hessian_direction_approximation_nu_square(doc_lambda, doc_nu_square_copy, doc_zeta_factor, total_word_count, p_vector, damping_coefficient=1);
             hessian_p_vector = self.hessian_damping_direction_approximation_nu_square(
                 doc_lambda, doc_nu_square_copy, doc_zeta_factor,
                 total_word_count, p_vector)
-            assert not numpy.any(numpy.isnan(hessian_p_vector))
+            assert not np.any(np.isnan(hessian_p_vector))
 
-            alpha_value = r_vector_square_old / numpy.sum(
+            alpha_value = r_vector_square_old / np.sum(
                 p_vector * hessian_p_vector)
-            assert not numpy.isnan(alpha_value), (
-                r_vector_square_old, numpy.sum(p_vector * hessian_p_vector))
+            assert not np.isnan(alpha_value), (
+                r_vector_square_old, np.sum(p_vector * hessian_p_vector))
             '''
             conjugate_gradient_power_index = 0
-            step_alpha = numpy.power(conjugate_gradient_decay_factor, conjugate_gradient_power_index);
-            while numpy.any(delta_doc_nu_square <= -step_alpha * alpha_value * p_vector):
+            step_alpha = np.power(conjugate_gradient_decay_factor, conjugate_gradient_power_index);
+            while np.any(delta_doc_nu_square <= -step_alpha * alpha_value * p_vector):
                 conjugate_gradient_power_index += 1;
-                step_alpha = numpy.power(conjugate_gradient_decay_factor, conjugate_gradient_power_index);
+                step_alpha = np.power(conjugate_gradient_decay_factor, conjugate_gradient_power_index);
                 if conjugate_gradient_power_index>=100:
                     print "power index larger than 100", delta_doc_nu_square, alpha_value * p_vector
                     break;
 
             delta_doc_nu_square += step_alpha * alpha_value * p_vector;
-            assert not numpy.any(numpy.isnan(delta_doc_nu_square))
+            assert not np.any(np.isnan(delta_doc_nu_square))
             '''
 
-            # p_vector /= numpy.sqrt(numpy.sum(p_vector**2));
+            # p_vector /= np.sqrt(np.sum(p_vector**2));
 
             delta_doc_nu_square += alpha_value * p_vector
-            assert not numpy.any(
-                numpy.isnan(delta_doc_nu_square)), (alpha_value, p_vector)
+            assert not np.any(
+                np.isnan(delta_doc_nu_square)), (alpha_value, p_vector)
             '''
             if conjugate_gradient_iteration_index % conjugate_gradient_reset_interval==0:
                 r_vector = -self.first_derivative_nu_square(doc_lambda, doc_nu_square_copy, doc_zeta_factor, total_word_count);
@@ -1933,18 +1924,18 @@ class VariationalBayes(Inferencer):
                 r_vector -= alpha_value * hessian_p_vector;
             '''
             r_vector -= alpha_value * hessian_p_vector
-            assert not numpy.any(numpy.isnan(r_vector))
+            assert not np.any(np.isnan(r_vector))
 
-            r_vector_square_new = numpy.sum(r_vector**2)
-            assert not numpy.isnan(r_vector_square_new)
+            r_vector_square_new = np.sum(r_vector**2)
+            assert not np.isnan(r_vector_square_new)
 
-            if numpy.sqrt(r_vector_square_new) <= conjugate_gradient_threshold:
+            if np.sqrt(r_vector_square_new) <= conjugate_gradient_threshold:
                 break
 
             p_vector *= r_vector_square_new / r_vector_square_old
-            assert not numpy.any(numpy.isnan(p_vector))
+            assert not np.any(np.isnan(p_vector))
             p_vector += r_vector
-            assert not numpy.any(numpy.isnan(p_vector))
+            assert not np.any(np.isnan(p_vector))
 
             r_vector_square_old = r_vector_square_new
 
@@ -1957,20 +1948,20 @@ class VariationalBayes(Inferencer):
             self._number_of_topics, self._number_of_topics)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
-        function_nu_square = 0.5 * numpy.sum(numpy.log(doc_nu_square))
+        function_nu_square = 0.5 * np.sum(np.log(doc_nu_square))
 
         if self._diagonal_covariance_matrix:
-            function_nu_square += -0.5 * numpy.sum(
+            function_nu_square += -0.5 * np.sum(
                 doc_nu_square / self._alpha_sigma)
         else:
-            function_nu_square += -0.5 * numpy.sum(
-                doc_nu_square * numpy.diag(self._alpha_sigma_inv))
+            function_nu_square += -0.5 * np.sum(
+                doc_nu_square * np.diag(self._alpha_sigma_inv))
 
-        function_nu_square += -total_word_count * numpy.sum(exp_over_doc_zeta)
+        function_nu_square += -total_word_count * np.sum(exp_over_doc_zeta)
 
         return function_nu_square
 
@@ -1981,14 +1972,14 @@ class VariationalBayes(Inferencer):
             self._number_of_topics, self._number_of_topics)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
             first_derivative_nu_square = -0.5 / self._alpha_sigma
         else:
-            first_derivative_nu_square = -0.5 * numpy.diag(
+            first_derivative_nu_square = -0.5 * np.diag(
                 self._alpha_sigma_inv)
         first_derivative_nu_square += 0.5 / doc_nu_square
         first_derivative_nu_square -= 0.5 * total_word_count * exp_over_doc_zeta
@@ -2002,9 +1993,9 @@ class VariationalBayes(Inferencer):
             self._number_of_topics, self._number_of_topics)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         second_derivative_nu_square = -0.5 / (doc_nu_square**2)
         second_derivative_nu_square += -0.25 * total_word_count * exp_over_doc_zeta
@@ -2021,17 +2012,17 @@ class VariationalBayes(Inferencer):
         assert direction_vector.shape == (self._number_of_topics, )
 
         log_exp_over_doc_zeta_a = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] - 0.5 * (
-                doc_nu_square[:, numpy.newaxis] +
-                direction_vector[:, numpy.newaxis] * epsilon), axis=1)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] - 0.5 * (
+                doc_nu_square[:, np.newaxis] +
+                direction_vector[:, np.newaxis] * epsilon), axis=1)
         log_exp_over_doc_zeta_b = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * doc_nu_square[:, numpy.newaxis], axis=1)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * doc_nu_square[:, np.newaxis], axis=1)
 
-        # hessian_direction_nu_square = total_word_count * numpy.exp(numpy.log(1 - numpy.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a)) - log_exp_over_doc_zeta_b)
-        hessian_direction_nu_square = total_word_count * numpy.exp(
+        # hessian_direction_nu_square = total_word_count * np.exp(np.log(1 - np.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a)) - log_exp_over_doc_zeta_b)
+        hessian_direction_nu_square = total_word_count * np.exp(
             -log_exp_over_doc_zeta_b
-        ) * (1 - numpy.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a))
+        ) * (1 - np.exp(log_exp_over_doc_zeta_b - log_exp_over_doc_zeta_a))
 
         hessian_direction_nu_square += 0.5 / (
             doc_nu_square + epsilon * direction_vector)
@@ -2069,7 +2060,7 @@ class VariationalBayes(Inferencer):
             assert damping_factor_denominator.shape == (
                 self._number_of_topics, )
             damping_factor_denominator *= direction_vector
-            damping_factor_denominator = numpy.sum(damping_factor_denominator)
+            damping_factor_denominator = np.sum(damping_factor_denominator)
 
             damping_factor_rho = damping_factor_numerator / damping_factor_denominator
             if damping_factor_rho < 0.25:
@@ -2096,12 +2087,12 @@ class VariationalBayes(Inferencer):
                 doc_lambda, doc_nu_square, doc_zeta_factor, total_word_count,
                 self._number_of_topics)
 
-            # print "check point 1", numpy.sum(numpy.exp(delta_doc_log_nu_square)**2), numpy.sum(delta_doc_log_nu_square**2)
-            # print numpy.sum(numpy.exp(delta_doc_log_nu_square)**2), numpy.exp(delta_doc_log_nu_square);
+            # print "check point 1", np.sum(np.exp(delta_doc_log_nu_square)**2), np.sum(delta_doc_log_nu_square**2)
+            # print np.sum(np.exp(delta_doc_log_nu_square)**2), np.exp(delta_doc_log_nu_square);
 
-            # delta_doc_log_nu_square /= numpy.sqrt(numpy.sum(delta_doc_log_nu_square**2));
+            # delta_doc_log_nu_square /= np.sqrt(np.sum(delta_doc_log_nu_square**2));
 
-            doc_nu_square *= numpy.exp(delta_doc_log_nu_square)
+            doc_nu_square *= np.exp(delta_doc_log_nu_square)
 
         return doc_nu_square
 
@@ -2116,19 +2107,19 @@ class VariationalBayes(Inferencer):
             conjugate_gradient_threshold=1e-9,
             conjugate_gradient_reset_interval=100,
             precondition_hessian_matrix=True):
-        doc_log_nu_square = numpy.log(doc_nu_square)
-        # delta_doc_log_nu_square = numpy.random.random(self._number_of_topics);
-        delta_doc_log_nu_square = numpy.zeros(self._number_of_topics)
-        # delta_doc_log_nu_square = numpy.log(doc_nu_square);
+        doc_log_nu_square = np.log(doc_nu_square)
+        # delta_doc_log_nu_square = np.random.random(self._number_of_topics);
+        delta_doc_log_nu_square = np.zeros(self._number_of_topics)
+        # delta_doc_log_nu_square = np.log(doc_nu_square);
 
         if precondition_hessian_matrix:
             hessian_log_nu_square = self.second_derivative_log_nu_square(
                 doc_lambda, doc_log_nu_square, doc_zeta_factor,
                 total_word_count)
-            if not numpy.all(numpy.isfinite(hessian_log_nu_square)):
-                return numpy.zeros(self._number_of_topics)
+            if not np.all(np.isfinite(hessian_log_nu_square)):
+                return np.zeros(self._number_of_topics)
             M_inverse = 1.0 / hessian_log_nu_square
-        # print numpy.linalg.cond(hessian_log_nu_square), ">>>", numpy.linalg.cond(numpy.dot(numpy.diag(1.0/numpy.diag(hessian_log_nu_square)), hessian_log_nu_square)), ">>>", numpy.linalg.cond(numpy.dot(numpy.linalg.cholesky(hessian_log_nu_square), hessian_log_nu_square));
+        # print np.linalg.cond(hessian_log_nu_square), ">>>", np.linalg.cond(np.dot(np.diag(1.0/np.diag(hessian_log_nu_square)), hessian_log_nu_square)), ">>>", np.linalg.cond(np.dot(np.linalg.cholesky(hessian_log_nu_square), hessian_log_nu_square));
 
         r_vector = -self.first_derivative_log_nu_square(
             doc_lambda, doc_log_nu_square, doc_zeta_factor, total_word_count)
@@ -2140,20 +2131,20 @@ class VariationalBayes(Inferencer):
         if precondition_hessian_matrix:
             z_vector = M_inverse * r_vector
         else:
-            z_vector = numpy.copy(r_vector)
+            z_vector = np.copy(r_vector)
 
-        p_vector = numpy.copy(z_vector)
-        r_z_vector_square_old = numpy.sum(r_vector * z_vector)
+        p_vector = np.copy(z_vector)
+        r_z_vector_square_old = np.sum(r_vector * z_vector)
 
         for conjugate_gradient_iteration_index in range(
                 conjugate_gradient_iteration):
-            assert numpy.all(numpy.isfinite(doc_lambda)), (
+            assert np.all(np.isfinite(doc_lambda)), (
                 conjugate_gradient_iteration_index, doc_lambda)
-            assert numpy.all(numpy.isfinite(doc_log_nu_square)), (
+            assert np.all(np.isfinite(doc_log_nu_square)), (
                 conjugate_gradient_iteration_index, doc_log_nu_square)
-            assert numpy.all(numpy.isfinite(doc_zeta_factor)), (
+            assert np.all(np.isfinite(doc_zeta_factor)), (
                 conjugate_gradient_iteration_index, doc_zeta_factor)
-            assert numpy.all(numpy.isfinite(r_vector)), (
+            assert np.all(np.isfinite(r_vector)), (
                 conjugate_gradient_iteration_index, r_vector, doc_nu_square,
                 -self.first_derivative_log_nu_square(
                     doc_lambda, doc_log_nu_square, doc_zeta_factor,
@@ -2161,7 +2152,7 @@ class VariationalBayes(Inferencer):
                 -self.hessian_direction_approximation_log_nu_square(
                     doc_lambda, doc_log_nu_square, doc_zeta_factor,
                     total_word_count, delta_doc_log_nu_square))
-            assert numpy.all(numpy.isfinite(p_vector)), (
+            assert np.all(np.isfinite(p_vector)), (
                 conjugate_gradient_iteration_index, p_vector)
 
             # hessian_p_vector = self.hessian_direction_approximation_log_nu_square(doc_lambda, log_doc_nu_square, doc_zeta_factor, total_word_count, p_vector);
@@ -2169,11 +2160,11 @@ class VariationalBayes(Inferencer):
                 doc_lambda, doc_log_nu_square, doc_zeta_factor,
                 total_word_count, p_vector)
 
-            alpha_value = r_z_vector_square_old / numpy.sum(
+            alpha_value = r_z_vector_square_old / np.sum(
                 p_vector * hessian_p_vector)
 
             delta_doc_log_nu_square += alpha_value * p_vector
-            assert not numpy.any(numpy.isnan(delta_doc_log_nu_square))
+            assert not np.any(np.isnan(delta_doc_log_nu_square))
             '''
             if conjugate_gradient_iteration_index % conjugate_gradient_reset_interval==0:
                 r_vector = -self.first_derivative_log_nu_square(doc_lambda, log_doc_nu_square, doc_zeta_factor, total_word_count);
@@ -2182,25 +2173,25 @@ class VariationalBayes(Inferencer):
                 r_vector -= alpha_value * hessian_p_vector;
             '''
             r_vector -= alpha_value * hessian_p_vector
-            assert not numpy.any(numpy.isnan(r_vector)), (
+            assert not np.any(np.isnan(r_vector)), (
                 alpha_value, hessian_p_vector, r_vector)
 
-            if numpy.sqrt(numpy.sum(r_vector**
+            if np.sqrt(np.sum(r_vector**
                                     2)) <= conjugate_gradient_threshold:
                 break
 
             if precondition_hessian_matrix:
                 z_vector = M_inverse * r_vector
             else:
-                z_vector = numpy.copy(r_vector)
+                z_vector = np.copy(r_vector)
 
-            r_z_vector_square_new = numpy.sum(r_vector * z_vector)
+            r_z_vector_square_new = np.sum(r_vector * z_vector)
 
             p_vector *= r_z_vector_square_new / r_z_vector_square_old
-            assert not numpy.any(numpy.isnan(p_vector))
+            assert not np.any(np.isnan(p_vector))
 
             p_vector += z_vector
-            assert not numpy.any(numpy.isnan(p_vector))
+            assert not np.any(np.isnan(p_vector))
 
             r_z_vector_square_old = r_z_vector_square_new
 
@@ -2210,7 +2201,7 @@ class VariationalBayes(Inferencer):
             self, doc_lambda, doc_log_nu_square, doc_zeta_factor,
             total_word_count):
         return self.function_nu_square(
-            doc_lambda, numpy.exp(doc_log_nu_square), doc_zeta_factor,
+            doc_lambda, np.exp(doc_log_nu_square), doc_zeta_factor,
             total_word_count)
 
     def first_derivative_log_nu_square(
@@ -2220,17 +2211,17 @@ class VariationalBayes(Inferencer):
         assert doc_zeta_factor.shape == (
             self._number_of_topics, self._number_of_topics)
 
-        exp_doc_log_nu_square = numpy.exp(doc_log_nu_square)
+        exp_doc_log_nu_square = np.exp(doc_log_nu_square)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * exp_doc_log_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * exp_doc_log_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
             first_derivative_log_nu_square = -0.5 * exp_doc_log_nu_square / self._alpha_sigma
         else:
-            first_derivative_log_nu_square = -0.5 * exp_doc_log_nu_square * numpy.diag(
+            first_derivative_log_nu_square = -0.5 * exp_doc_log_nu_square * np.diag(
                 self._alpha_sigma_inv)
         first_derivative_log_nu_square += 0.5
         first_derivative_log_nu_square -= 0.5 * total_word_count * exp_over_doc_zeta * exp_doc_log_nu_square
@@ -2244,17 +2235,17 @@ class VariationalBayes(Inferencer):
         assert doc_zeta_factor.shape == (
             self._number_of_topics, self._number_of_topics)
 
-        exp_doc_log_nu_square = numpy.exp(doc_log_nu_square)
+        exp_doc_log_nu_square = np.exp(doc_log_nu_square)
 
         exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * exp_doc_log_nu_square[:, numpy.newaxis], axis=1)
-        exp_over_doc_zeta = numpy.exp(-exp_over_doc_zeta)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * exp_doc_log_nu_square[:, np.newaxis], axis=1)
+        exp_over_doc_zeta = np.exp(-exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
             second_derivative_log_nu_square = -0.5 * exp_doc_log_nu_square / self._alpha_sigma
         else:
-            second_derivative_log_nu_square = -0.5 * exp_doc_log_nu_square * numpy.diag(
+            second_derivative_log_nu_square = -0.5 * exp_doc_log_nu_square * np.diag(
                 self._alpha_sigma_inv)
         second_derivative_log_nu_square -= 0.5 * total_word_count * exp_over_doc_zeta * exp_doc_log_nu_square * (
             1 + 0.5 * exp_doc_log_nu_square)
@@ -2270,25 +2261,25 @@ class VariationalBayes(Inferencer):
             self._number_of_topics, self._number_of_topics)
         assert direction_vector.shape == (self._number_of_topics, )
 
-        exp_doc_log_nu_square = numpy.exp(doc_log_nu_square)
-        exp_doc_log_nu_square_epsilon_direction = numpy.exp(
+        exp_doc_log_nu_square = np.exp(doc_log_nu_square)
+        exp_doc_log_nu_square_epsilon_direction = np.exp(
             doc_log_nu_square + direction_vector * epsilon)
 
         log_exp_over_doc_zeta_epsilon_direction = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * exp_doc_log_nu_square_epsilon_direction[:, numpy.newaxis],
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * exp_doc_log_nu_square_epsilon_direction[:, np.newaxis],
             axis=1)
         log_exp_over_doc_zeta = scipy.misc.logsumexp(
-            doc_zeta_factor - doc_lambda[:, numpy.newaxis] -
-            0.5 * exp_doc_log_nu_square[:, numpy.newaxis], axis=1)
+            doc_zeta_factor - doc_lambda[:, np.newaxis] -
+            0.5 * exp_doc_log_nu_square[:, np.newaxis], axis=1)
 
-        # hessian_direction_log_nu_square = 0.5 * total_word_count * numpy.exp(log_doc_nu_square - log_exp_over_doc_zeta)
-        # hessian_direction_log_nu_square += - 0.5 * total_word_count * numpy.exp(log_doc_nu_square + direction_vector * epsilon - log_exp_over_doc_zeta_epsilon_direction)
+        # hessian_direction_log_nu_square = 0.5 * total_word_count * np.exp(log_doc_nu_square - log_exp_over_doc_zeta)
+        # hessian_direction_log_nu_square += - 0.5 * total_word_count * np.exp(log_doc_nu_square + direction_vector * epsilon - log_exp_over_doc_zeta_epsilon_direction)
 
-        hessian_direction_log_nu_square = 1 - numpy.exp(
+        hessian_direction_log_nu_square = 1 - np.exp(
             direction_vector * epsilon -
             log_exp_over_doc_zeta_epsilon_direction + log_exp_over_doc_zeta)
-        hessian_direction_log_nu_square *= 0.5 * total_word_count * numpy.exp(
+        hessian_direction_log_nu_square *= 0.5 * total_word_count * np.exp(
             doc_log_nu_square - log_exp_over_doc_zeta)
 
         if self._diagonal_covariance_matrix:
@@ -2298,7 +2289,7 @@ class VariationalBayes(Inferencer):
         else:
             hessian_direction_log_nu_square += 0.5 * (
                 exp_doc_log_nu_square -
-                exp_doc_log_nu_square_epsilon_direction) * numpy.diag(
+                exp_doc_log_nu_square_epsilon_direction) * np.diag(
                     self._alpha_sigma_inv)
 
         hessian_direction_log_nu_square /= epsilon
@@ -2310,8 +2301,8 @@ class VariationalBayes(Inferencer):
             total_word_count, direction_vector,
             damping_factor_initialization=0.1, damping_factor_iteration=10):
         # print "=========="
-        # print log_doc_nu_square + direction_vector, numpy.exp(log_doc_nu_square + direction_vector)
-        # print log_doc_nu_square, numpy.exp(log_doc_nu_square);
+        # print log_doc_nu_square + direction_vector, np.exp(log_doc_nu_square + direction_vector)
+        # print log_doc_nu_square, np.exp(log_doc_nu_square);
 
         damping_factor_numerator = self.function_log_nu_square(
             doc_lambda, doc_log_nu_square + direction_vector, doc_zeta_factor,
@@ -2337,7 +2328,7 @@ class VariationalBayes(Inferencer):
             assert damping_factor_denominator.shape == (
                 self._number_of_topics, )
             damping_factor_denominator *= direction_vector
-            damping_factor_denominator = numpy.sum(damping_factor_denominator)
+            damping_factor_denominator = np.sum(damping_factor_denominator)
 
             # print "check point 2", damping_factor_numerator, damping_factor_denominator
             damping_factor_rho = damping_factor_numerator / damping_factor_denominator
