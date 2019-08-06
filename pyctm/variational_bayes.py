@@ -53,7 +53,7 @@ class Process_E_Step_Queue(multiprocessing.Process):
                 self._alpha_sigma_inv) = model_parameters
         (self._number_of_topics, self._number_of_types) = self._E_log_eta.shape
 
-        if result_sufficient_statistics_queue != None:
+        if result_sufficient_statistics_queue is not None:
             self._E_log_prob_eta = self._E_log_eta - scipy.misc.logsumexp(
                 self._E_log_eta, axis=1)[:, np.newaxis]
 
@@ -230,7 +230,7 @@ class Process_E_Step_Queue(multiprocessing.Process):
                 np.exp(log_phi) * log_phi * term_counts)
 
             # Note: all terms including E_q[p(\eta | \beta)], i.e., terms involving \Psi(\eta), are cancelled due to \eta updates in M-step
-            if self._result_sufficient_statistics_queue == None:
+            if self._result_sufficient_statistics_queue is None:
                 # compute the phi terms
                 words_log_likelihood += np.sum(
                     np.exp(log_phi + np.log(term_counts)) *
@@ -254,7 +254,7 @@ class Process_E_Step_Queue(multiprocessing.Process):
 
             self._task_queue.task_done()
 
-        if self._result_sufficient_statistics_queue == None:
+        if self._result_sufficient_statistics_queue is None:
             self._result_log_likelihood_queue.put(words_log_likelihood)
         else:
             self._result_log_likelihood_queue.put(document_log_likelihood)
@@ -363,7 +363,7 @@ class VariationalBayes(Inferencer):
             self, parsed_corpus=None, number_of_processes=0,
             local_parameter_iteration=10,
             local_parameter_converge_threshold=1e-3):
-        if parsed_corpus == None:
+        if parsed_corpus is None:
             word_ids = self._parsed_corpus[0]
             word_cts = self._parsed_corpus[1]
         else:
@@ -386,7 +386,7 @@ class VariationalBayes(Inferencer):
 
         result_doc_parameter_queue = multiprocessing.Queue()
         result_log_likelihood_queue = multiprocessing.Queue()
-        if parsed_corpus == None:
+        if parsed_corpus is None:
             result_sufficient_statistics_queue = multiprocessing.Queue()
         else:
             result_sufficient_statistics_queue = None
@@ -449,7 +449,7 @@ class VariationalBayes(Inferencer):
             log_likelihood += result_log_likelihood_queue.get()
             # print "log_likelihood is", log_likelihood;
 
-        if parsed_corpus == None:
+        if parsed_corpus is None:
             self._lambda = lambda_values
             self._nu_square = nu_square_values
 
@@ -467,7 +467,7 @@ class VariationalBayes(Inferencer):
         for process_e_step in processes_e_step:
             process_e_step.join()
 
-        if parsed_corpus == None:
+        if parsed_corpus is None:
             return log_likelihood, phi_sufficient_statistics
         else:
             return log_likelihood, lambda_values, nu_square_values
@@ -523,7 +523,7 @@ class VariationalBayes(Inferencer):
             log_likelihood += result_log_likelihood_queue.get()
             # print "log_likelihood is", log_likelihood;
 
-        if result_sufficient_statistics_queue == None:
+        if result_sufficient_statistics_queue is None:
             return log_likelihood, lambda_values, nu_square_values
         else:
             # initialize a K-by-V matrix phi sufficient statistics
@@ -547,7 +547,7 @@ class VariationalBayes(Inferencer):
     def e_step(
             self, parsed_corpus=None, local_parameter_iteration=10,
             local_parameter_converge_threshold=1e-3):
-        if parsed_corpus == None:
+        if parsed_corpus is None:
             word_ids = self._parsed_corpus[0]
             word_cts = self._parsed_corpus[1]
         else:
@@ -560,7 +560,7 @@ class VariationalBayes(Inferencer):
         E_log_eta = compute_dirichlet_expectation(self._eta)
         assert E_log_eta.shape == (
             self._number_of_topics, self._number_of_types)
-        if parsed_corpus != None:
+        if parsed_corpus is not None:
             E_log_prob_eta = E_log_eta - scipy.misc.logsumexp(
                 E_log_eta, axis=1)[:, np.newaxis]
 
@@ -742,7 +742,7 @@ class VariationalBayes(Inferencer):
                 np.exp(log_phi) * log_phi * term_counts)
 
             # Note: all terms including E_q[p(\eta | \beta)], i.e., terms involving \Psi(\eta), are cancelled due to \eta updates in M-step
-            if parsed_corpus != None:
+            if parsed_corpus is not None:
                 # compute the phi terms
                 words_log_likelihood += np.sum(
                     np.exp(log_phi + np.log(term_counts)) *
@@ -761,7 +761,7 @@ class VariationalBayes(Inferencer):
 
         assert np.all(nu_square_values > 0)
 
-        if parsed_corpus == None:
+        if parsed_corpus is None:
             self._lambda = lambda_values
             self._nu_square = nu_square_values
             return document_log_likelihood, phi_sufficient_statistics

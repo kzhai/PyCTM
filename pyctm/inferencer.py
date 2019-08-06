@@ -1,11 +1,12 @@
 """
 @author: Ke Zhai (zhaike@cs.umd.edu)
 """
-
 import numpy as np
 import scipy
+from sklearn.utils.deprecation import deprecated
 
 
+@deprecated("use sklearn.decomposition._online_lda._dirichlet_expectation_2d instead.")
 def compute_dirichlet_expectation(dirichlet_parameter):
     if (len(dirichlet_parameter.shape) == 1):
         return scipy.special.psi(dirichlet_parameter) - scipy.special.psi(
