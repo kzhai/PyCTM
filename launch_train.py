@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import cPickle, getopt, sys, time, re
+import pickle, getopt, sys, time, re
 import datetime, os;
 
 import scipy.io;
@@ -120,7 +120,7 @@ def main():
     train_docs = [];
     for line in input_doc_stream:
         train_docs.append(line.strip().lower());
-    print "successfully load all training docs from %s..." % (os.path.abspath(train_docs_path));
+    print("successfully load all training docs from %s..." % (os.path.abspath(train_docs_path)));
     
     # Vocabulary
     vocabulary_path = os.path.join(input_directory, 'voc.dat');
@@ -129,7 +129,7 @@ def main():
     for line in input_voc_stream:
         vocab.append(line.strip().lower().split()[0]);
     vocab = list(set(vocab));
-    print "successfully load all the words from %s..." % (os.path.abspath(vocabulary_path));
+    print("successfully load all the words from %s..." % (os.path.abspath(vocabulary_path)));
     
     # parameter set 3
     alpha_mu = options.alpha_mu;
@@ -187,25 +187,25 @@ def main():
     # options_output_file.write("diagonal_covariance_matrix=%s\n" % (diagonal_covariance_matrix));
     options_output_file.close()
 
-    print "========== ========== ========== ========== =========="
+    print("========== ========== ========== ========== ==========")
     # parameter set 1
-    print "output_directory=" + output_directory
-    print "input_directory=" + input_directory
-    print "corpus_name=" + corpus_name
+    print("output_directory=" + output_directory)
+    print("input_directory=" + input_directory)
+    print("corpus_name=" + corpus_name)
     # print "dictionary file=" + str(dict_file)
     # parameter set 2
-    print "training_iterations=%d" % (training_iterations);
-    print "snapshot_interval=" + str(snapshot_interval);
-    print "number_of_topics=" + str(number_of_topics)
+    print("training_iterations=%d" % (training_iterations));
+    print("snapshot_interval=" + str(snapshot_interval));
+    print("number_of_topics=" + str(number_of_topics))
     # parameter set 3
-    print "alpha_mu=" + str(alpha_mu)
-    print "alpha_sigma=" + str(alpha_sigma)
-    print "alpha_beta=" + str(alpha_beta)
+    print("alpha_mu=" + str(alpha_mu))
+    print("alpha_sigma=" + str(alpha_sigma))
+    print("alpha_beta=" + str(alpha_beta))
     # parameter set 4
-    print "optimization_method=%s" % (optimization_method)
-    print "number_of_processes=%d" % (number_of_processes)
+    print("optimization_method=%s" % (optimization_method))
+    print("number_of_processes=%d" % (number_of_processes))
     # print "diagonal_covariance_matrix=%s" % (diagonal_covariance_matrix)
-    print "========== ========== ========== ========== =========="
+    print("========== ========== ========== ========== ==========")
     
     '''
     if inference_mode==0:
@@ -227,16 +227,16 @@ def main():
     
     ctm_inferencer._initialize(train_docs, vocab, number_of_topics, alpha_mu, alpha_sigma, alpha_beta);
     
-    for iteration in xrange(training_iterations):
+    for iteration in range(training_iterations):
         ctm_inferencer.learning(number_of_processes);
         
         if (ctm_inferencer._counter % snapshot_interval == 0):
             ctm_inferencer.export_beta(os.path.join(output_directory, 'exp_beta-' + str(ctm_inferencer._counter)));
             model_snapshot_path = os.path.join(output_directory, 'model-' + str(ctm_inferencer._counter));
-            cPickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
+            pickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
             
     model_snapshot_path = os.path.join(output_directory, 'model-' + str(ctm_inferencer._counter));
-    cPickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
+    pickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
     
 if __name__ == '__main__':
     main()

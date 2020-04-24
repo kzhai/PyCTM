@@ -1,4 +1,4 @@
-import cPickle;
+import pickle;
 import optparse
 import string, numpy, getopt, sys, random, time, re, pprint
 import datetime, os;
@@ -73,9 +73,8 @@ def main():
         sys.stderr.write("error: model snapshot file unfound %s...\n" % (model_snapshot_file_path));
         return;
     
-    import variational_bayes;
-    ctm_inferencer = cPickle.load(open(model_snapshot_file_path, "rb"));
-    print 'successfully load model snapshot %s...' % (os.path.join(model_directory, "model-%d" % snapshot_index));
+    ctm_inferencer = pickle.load(open(model_snapshot_file_path, "rb"));
+    print('successfully load model snapshot %s...' % (os.path.join(model_directory, "model-%d" % snapshot_index)));
 
     # set the resume options  
     matches = re.match(model_settings_pattern, model_settings);
@@ -112,7 +111,7 @@ def main():
     shutil.copy(model_snapshot_file_path, os.path.join(output_directory, "model-" + str(snapshot_index)));
     shutil.copy(model_snapshot_file_path, os.path.join(output_directory, "exp_beta-" + str(snapshot_index)));
     
-    for iteration in xrange(snapshot_index, training_iterations):
+    for iteration in range(snapshot_index, training_iterations):
         # clock = time.time();
         log_likelihood = ctm_inferencer.learning();
         # clock = time.time()-clock;
@@ -121,10 +120,10 @@ def main():
         if ((ctm_inferencer._counter) % snapshot_interval == 0):
             ctm_inferencer.export_beta(os.path.join(output_directory, 'exp_beta-' + str(ctm_inferencer._counter)));
             model_snapshot_path = os.path.join(output_directory, 'model-' + str(ctm_inferencer._counter));
-            cPickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
+            pickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
     
     model_snapshot_path = os.path.join(output_directory, 'model-' + str(ctm_inferencer._counter));
-    cPickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
+    pickle.dump(ctm_inferencer, open(model_snapshot_path, 'wb'));
     
 if __name__ == '__main__':
     main()

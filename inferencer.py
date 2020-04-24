@@ -65,7 +65,7 @@ class Inferencer():
             self._index_to_type[len(self._index_to_type)] = word;
             self._type_to_index[word] = len(self._type_to_index);
             
-        self._vocab = self._type_to_index.keys();
+        self._vocab = list(self._type_to_index.keys());
         
     def parse_data(self):
         raise NotImplementedError;
